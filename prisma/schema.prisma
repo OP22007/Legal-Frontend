@@ -1,0 +1,586 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("POSTGRES_PRISMA_URL")
+  directUrl = env("POSTGRES_URL_NON_POOLING")
+}
+
+// Legal Document Analysis Platform - Prisma Database Schema
+// Task 2: Database Schema and Models Implementation
+
+// =====================================================
+// AUTHENTICATION & USER MANAGEMENT
+// =====================================================
+
+enum UserRole {
+  USER
+  ADMIN
+  MODERATOR
+}
+
+enum UserPersona {
+  STUDENT           // Educational focus, simpler explanations
+  FREELANCER        // Contract emphasis, business terms focus
+  TENANT            // Rental agreements, housing rights
+  SMALL_BUSINESS    // Commercial contracts, compliance
+  GENERAL           // Default persona for general users
+}
+
+model User {
+  id                    String      @id @default(cuid())
+  email                 String      @unique
+  passwordHash          String
+  firstName             String
+  lastName              String?
+  role                  UserRole    @default(USER)
+  persona               UserPersona @default(GENERAL)
+  preferredLanguage     String      @default("en") // ISO 639-1 language codes
+  isEmailVerified       Boolean     @default(false)
+  emailVerificationToken String?    @unique
+  passwordResetToken    String?     @unique
+  passwordResetExpires  DateTime?
+  
+  // User preferences
+  notificationsEnabled  Boolean     @default(true)
+  dataRetentionDays     Int         @default(30) // Auto-delete documents after X days
+  
+  // Timestamps
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
+  lastLoginAt          DateTime?
+  
+  // Relations
+  documents            Document[]
+  chatSessions         ChatSession[]
+  exportHistory        ExportHistory[]
+  userAnalytics        UserAnalytics[]
+  
+  @@map("users")
+}
+
+// =====================================================
+// DOCUMENT MANAGEMENT
+// =====================================================
+
+enum DocumentType {
+  RENTAL_AGREEMENT
+  LOAN_CONTRACT
+  TERMS_OF_SERVICE
+  PRIVACY_POLICY
+  EMPLOYMENT_CONTRACT
+  FREELANCE_CONTRACT
+  PURCHASE_AGREEMENT
+  NDA
+  PARTNERSHIP_AGREEMENT
+  INSURANCE_POLICY
+  OTHER
+}
+
+enum DocumentStatus {
+  UPLOADED          // Just uploaded, pending processing
+  PROCESSING        // AI analysis in progress
+  ANALYZED          // Analysis complete
+  ERROR             // Processing failed
+  EXPIRED           // Auto-deleted due to retention policy
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+model Document {
+  id                    String            @id @default(cuid())
+  userId                String
+  
+  // File metadata
+  originalFileName      String
+  fileSize              Int               // Size in bytes
+  mimeType              String
+  fileHash              String            @unique // SHA-256 hash for deduplication
+  storageUrl            String            // Google Cloud Storage URL
+  
+  // Document classification
+  documentType          DocumentType      @default(OTHER)
+  detectedLanguage      String            @default("en")
+  status                DocumentStatus    @default(UPLOADED)
+  
+  // Content extraction
+  extractedText         String?           // Full text content
+  textExtractionMethod  String?           // pdf, docx, txt, ocr
+  pageCount             Int?
+  wordCount             Int?
+  
+  // Analysis metadata
+  overallRiskScore      Float?            @default(0)
+  riskLevel             RiskLevel?        @default(LOW)
+  processingTimeMs      Int?              // Time taken for analysis
+  aiModelVersion        String?           // Version of AI model used
+  
+  // Timestamps
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+  analyzedAt           DateTime?
+  expiresAt            DateTime?         // Auto-deletion timestamp
+  
+  // Relations
+  user                 User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  analyses             DocumentAnalysis[]
+  translations         DocumentTranslation[]
+  keyPoints            KeyPoint[]
+  riskFactors          RiskFactor[]
+  glossaryTerms        GlossaryTerm[]
+  chatSessions         ChatSession[]
+  exportHistory        ExportHistory[]
+  
+  @@map("documents")
+  @@index([userId, createdAt])
+  @@index([status])
+  @@index([documentType])
+  @@index([expiresAt])
+}
+
+// =====================================================
+// AI ANALYSIS SYSTEM
+// =====================================================
+
+enum AnalysisType {
+  FULL_ANALYSIS         // Complete document analysis
+  RISK_ASSESSMENT       // Risk-focused analysis
+  KEY_POINTS           // Key points extraction only
+  SUMMARY              // Summary generation only
+  CLAUSE_ANALYSIS      // Specific clause analysis
+}
+
+model DocumentAnalysis {
+  id                    String        @id @default(cuid())
+  documentId            String
+  analysisType          AnalysisType
+  
+  // Analysis results
+  summary               Json?         // ELI5 summary in structured format
+  detailedAnalysis      Json?         // Paragraph-by-paragraph analysis
+  recommendations       Json?         // Action items and recommendations
+  potentialIssues       Json?         // Identified problems and concerns
+  
+  // AI processing metadata
+  promptTemplate        String?       // Template used for AI prompt
+  aiResponse            Json?         // Raw AI response
+  processingTimeMs      Int?
+  tokensUsed            Int?
+  aiModelUsed           String?       // e.g., "gemini-pro-1.0"
+  
+  // Quality metrics
+  confidenceScore       Float?        @default(0)
+  reviewRequired        Boolean       @default(false)
+  
+  // Timestamps
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+  
+  // Relations
+  document             Document      @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  
+  @@map("document_analyses")
+  @@index([documentId, analysisType])
+  @@index([createdAt])
+}
+
+// =====================================================
+// RISK ASSESSMENT SYSTEM
+// =====================================================
+
+enum RiskCategory {
+  FINANCIAL            // Money-related risks
+  LEGAL               // Legal liability risks
+  PRIVACY             // Data protection risks
+  TERMINATION         // Contract termination risks
+  OBLIGATION          // Performance obligation risks
+  DISPUTE_RESOLUTION  // Conflict resolution risks
+  RENEWAL             // Auto-renewal risks
+  PENALTY             // Penalty and fee risks
+}
+
+model RiskFactor {
+  id                   String        @id @default(cuid())
+  documentId           String
+  
+  // Risk details
+  category             RiskCategory
+  title                String
+  description          String
+  severity             RiskLevel
+  likelihood           Float         @default(0) // 0-1 probability
+  impact               Float         @default(0) // 0-1 impact score
+  overallScore         Float         @default(0) // Calculated risk score
+  
+  // Location in document
+  pageNumber           Int?
+  paragraphNumber      Int?
+  textSnippet          String?       // Relevant text excerpt
+  startOffset          Int?          // Character position in document
+  endOffset            Int?
+  
+  // Risk mitigation
+  mitigation           String?       // Suggested actions
+  isActionable         Boolean       @default(true)
+  priority             Int           @default(1) // 1-5 priority level
+  
+  // Timestamps
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  
+  // Relations
+  document            Document      @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  
+  @@map("risk_factors")
+  @@index([documentId, severity])
+  @@index([category])
+}
+
+// =====================================================
+// MULTI-LANGUAGE TRANSLATION SYSTEM
+// =====================================================
+
+model DocumentTranslation {
+  id                   String        @id @default(cuid())
+  documentId           String
+  
+  // Language details
+  sourceLanguage       String        // ISO 639-1 code (e.g., "en")
+  targetLanguage       String        // ISO 639-1 code (e.g., "hi", "ta", etc.)
+  
+  // Translation content
+  translatedText       String        // Full translated document
+  translatedSummary    Json?         // Translated summary structure
+  preservedTerms       Json?         // Legal terms kept in original language
+  
+  // Translation metadata
+  translationService   String        @default("google-translate")
+  qualityScore         Float?        @default(0)
+  reviewRequired       Boolean       @default(false)
+  
+  // Processing details
+  processingTimeMs     Int?
+  characterCount       Int?
+  
+  // Timestamps
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  
+  // Relations
+  document            Document      @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  
+  @@map("document_translations")
+  @@unique([documentId, targetLanguage])
+  @@index([targetLanguage])
+}
+
+// =====================================================
+// KEY POINTS & GLOSSARY SYSTEM
+// =====================================================
+
+enum KeyPointCategory {
+  PAYMENT_TERMS
+  TERMINATION_CLAUSES
+  LIABILITY
+  WARRANTIES
+  INTELLECTUAL_PROPERTY
+  CONFIDENTIALITY
+  DISPUTE_RESOLUTION
+  GOVERNING_LAW
+  FORCE_MAJEURE
+  AMENDMENTS
+  OTHER
+}
+
+model KeyPoint {
+  id                   String           @id @default(cuid())
+  documentId           String
+  
+  // Key point details
+  category             KeyPointCategory
+  title                String
+  description          String
+  importance           Int              @default(1) // 1-5 importance level
+  
+  // Location in document
+  pageNumber           Int?
+  sectionTitle         String?
+  paragraphNumber      Int?
+  textSnippet          String           // Original text
+  startOffset          Int?
+  endOffset            Int?
+  
+  // Analysis
+  explanation          String?          // ELI5 explanation
+  potentialImpact      String?          // What this means for the user
+  userFriendlyTitle    String?          // Simplified title
+  
+  // Timestamps
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+  
+  // Relations
+  document            Document         @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  
+  @@map("key_points")
+  @@index([documentId, category])
+  @@index([importance])
+}
+
+model GlossaryTerm {
+  id                   String        @id @default(cuid())
+  documentId           String?       // Null for global terms
+  
+  // Term details
+  term                 String
+  definition           String
+  simplifiedDefinition String?       // ELI5 definition
+  category             String?       // Legal category
+  
+  // Usage context
+  contextSentence      String?       // Example usage in document
+  relatedTerms         Json?         // Array of related terms
+  
+  // Metadata
+  isLegalJargon        Boolean       @default(true)
+  frequency            Int           @default(1) // How often it appears
+  language             String        @default("en")
+  
+  // Timestamps
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  
+  // Relations
+  document            Document?     @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  
+  @@map("glossary_terms")
+  @@unique([term, language, documentId])
+  @@index([term])
+  @@index([documentId])
+}
+
+// =====================================================
+// CHAT SYSTEM
+// =====================================================
+
+enum MessageRole {
+  USER
+  ASSISTANT
+  SYSTEM
+}
+
+model ChatSession {
+  id                   String        @id @default(cuid())
+  userId               String
+  documentId           String?       // Optional: chat about specific document
+  
+  // Session metadata
+  title                String?       // Auto-generated or user-set title
+  isActive             Boolean       @default(true)
+  
+  // Timestamps
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  lastMessageAt       DateTime?
+  
+  // Relations
+  user                User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  document            Document?     @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  messages            ChatMessage[]
+  
+  @@map("chat_sessions")
+  @@index([userId, lastMessageAt])
+  @@index([documentId])
+}
+
+model ChatMessage {
+  id                   String        @id @default(cuid())
+  sessionId            String
+  
+  // Message details
+  role                 MessageRole
+  content              String
+  metadata             Json?         // Additional context, attachments, etc.
+  
+  // AI response metadata (for assistant messages)
+  tokensUsed           Int?
+  processingTimeMs     Int?
+  modelUsed            String?
+  
+  // Message state
+  isHidden             Boolean       @default(false)
+  
+  // Timestamps
+  createdAt           DateTime      @default(now())
+  
+  // Relations
+  session             ChatSession   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  
+  @@map("chat_messages")
+  @@index([sessionId, createdAt])
+}
+
+// =====================================================
+// EXPORT & SHARING SYSTEM
+// =====================================================
+
+enum ExportFormat {
+  PDF
+  DOCX
+  HTML
+  JSON
+}
+
+enum ShareStatus {
+  PRIVATE
+  SHARED_LINK
+  EXPIRED
+}
+
+model ExportHistory {
+  id                   String        @id @default(cuid())
+  userId               String
+  documentId           String
+  
+  // Export details
+  format               ExportFormat
+  exportType           String        // "full", "summary", "analysis", etc.
+  fileName             String
+  fileSize             Int?
+  
+  // Export content
+  exportUrl            String?       // Cloud storage URL
+  exportData           Json?         // For JSON exports
+  
+  // Sharing
+  shareStatus          ShareStatus   @default(PRIVATE)
+  shareToken           String?       @unique
+  shareExpiresAt       DateTime?
+  downloadCount        Int           @default(0)
+  
+  // Timestamps
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  
+  // Relations
+  user                User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  document            Document      @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  
+  @@map("export_history")
+  @@index([userId, createdAt])
+  @@index([shareToken])
+}
+
+// =====================================================
+// ANALYTICS & MONITORING
+// =====================================================
+
+model UserAnalytics {
+  id                   String        @id @default(cuid())
+  userId               String
+  
+  // Usage metrics
+  documentsUploaded    Int           @default(0)
+  analysesGenerated    Int           @default(0)
+  chatMessagesExchanged Int          @default(0)
+  translationsRequested Int          @default(0)
+  exportsGenerated     Int           @default(0)
+  
+  // Time metrics
+  totalTimeSpent       Int           @default(0) // In seconds
+  averageSessionTime   Int           @default(0) // In seconds
+  
+  // Feature usage
+  mostUsedPersona      UserPersona?
+  mostAnalyzedDocType  DocumentType?
+  preferredLanguages   Json?         // Array of language codes
+  
+  // Date tracking
+  date                 DateTime      @default(now()) @db.Date
+  
+  // Relations
+  user                User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("user_analytics")
+  @@unique([userId, date])
+  @@index([date])
+}
+
+// =====================================================
+// SYSTEM CONFIGURATION
+// =====================================================
+
+model SystemConfig {
+  id                   String        @id @default(cuid())
+  key                  String        @unique
+  value                Json
+  description          String?
+  category             String        @default("general")
+  
+  // Metadata
+  isActive             Boolean       @default(true)
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  
+  @@map("system_config")
+  @@index([category])
+}
+
+// =====================================================
+// AUDIT LOG
+// =====================================================
+
+enum ActionType {
+  USER_CREATED
+  USER_UPDATED
+  USER_DELETED
+  DOCUMENT_UPLOADED
+  DOCUMENT_ANALYZED
+  DOCUMENT_TRANSLATED
+  DOCUMENT_EXPORTED
+  CHAT_SESSION_STARTED
+  RISK_DETECTED
+  ERROR_OCCURRED
+}
+
+model AuditLog {
+  id                   String        @id @default(cuid())
+  
+  // Action details
+  action               ActionType
+  entityType           String        // "user", "document", "chat", etc.
+  entityId             String        // ID of the affected entity
+  userId               String?       // User who performed the action
+  
+  // Action context
+  details              Json?         // Additional action details
+  ipAddress            String?
+  userAgent            String?
+  
+  // Metadata
+  success              Boolean       @default(true)
+  errorMessage         String?
+  processingTimeMs     Int?
+  
+  // Timestamp
+  createdAt           DateTime      @default(now())
+  
+  @@map("audit_logs")
+  @@index([action, createdAt])
+  @@index([entityType, entityId])
+  @@index([userId, createdAt])
+}
