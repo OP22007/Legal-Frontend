@@ -38,6 +38,9 @@ enum UserPersona {
 
 model User {
   id                    String      @id @default(cuid())
+  name                  String?
+  emailVerified         DateTime?
+  image                 String?
   email                 String      @unique
   passwordHash          String
   firstName             String
@@ -45,7 +48,7 @@ model User {
   role                  UserRole    @default(USER)
   persona               UserPersona @default(GENERAL)
   preferredLanguage     String      @default("en") // ISO 639-1 language codes
-  isEmailVerified       Boolean     @default(false)
+  // isEmailVerified       Boolean     @default(false)
   emailVerificationToken String?    @unique
   passwordResetToken    String?     @unique
   passwordResetExpires  DateTime?
@@ -60,12 +63,50 @@ model User {
   lastLoginAt          DateTime?
   
   // Relations
+  accounts            Account[]   // REQUIRED BY NEXTAUTH
+  sessions            Session[]   // REQUIRED BY NEXTAUTH
   documents            Document[]
   chatSessions         ChatSession[]
   exportHistory        ExportHistory[]
   userAnalytics        UserAnalytics[]
   
   @@map("users")
+}
+
+model Account {
+ id                String  @id @default(cuid())
+ userId            String
+ type              String
+ provider          String
+ providerAccountId String
+ refresh_token     String? @db.Text
+ access_token      String? @db.Text
+ expires_at        Int?
+ token_type        String?
+ scope             String?
+ id_token          String? @db.Text
+ session_state     String?
+ user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+ @@unique([provider, providerAccountId])
+}
+
+// ✅ REQUIRED FOR NEXTAUTH DATABASE SESSIONS
+model Session {
+ id           String   @id @default(cuid())
+ sessionToken String   @unique
+ userId       String
+ expires      DateTime
+ user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ✅ REQUIRED FOR NEXTAUTH EMAIL PROVIDER
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
 }
 
 // =====================================================
