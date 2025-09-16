@@ -19,6 +19,7 @@ export async function POST(req: NextRequest) {
         passwordHash,
         firstName,
         lastName,
+        name: `${firstName} ${lastName}`,
         persona,
       },
     });

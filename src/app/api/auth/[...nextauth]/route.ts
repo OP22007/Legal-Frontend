@@ -4,6 +4,7 @@ import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "@/lib/db";
 import { compare } from "bcryptjs";
+import { UserRole, UserPersona } from "@prisma/client";
 
 export const authOptions = {
 	adapter: PrismaAdapter(prisma),
@@ -46,9 +47,8 @@ export const authOptions = {
 		}),
 	],
 
-	// ✅ CHANGE THIS: Use the database strategy to enable account linking
 	session: {
-		strategy: "database",
+		strategy: "jwt",
 	},
 
 	pages: {
@@ -56,8 +56,7 @@ export const authOptions = {
 	},
 
 	callbacks: {
-		// ✅ SIMPLIFIED CALLBACK: With a database strategy, the user object is directly available.
-        async signIn({ user, account, profile }) {
+		async signIn({ user, account, profile }) {
 			// Allow credentials login
 			if (account?.provider === "credentials") {
 				return true;
@@ -78,13 +77,23 @@ export const authOptions = {
 			// Deny other providers by default
 			return false;
 		},
-		async session({ session, user }) {
+		async jwt({ token, user }) {
+			if (user) {
+				token.id = user.id;
+                token.email = user.email;
+                token.name = user.firstName+" "+user.lastName;
+				token.role = user.role;
+				token.persona = user.persona;
+			}
+			return token;
+		},
+		async session({ session, token }) {
 			if (session.user) {
-				session.user.id = user.id;
-                session.user.name = user.firstName+" "+user.lastName // Add 
-                // user ID to the session
-                session.user.role = user.role // Add user role to the session
-                session.user.persona = user.persona // Add user persona to the session
+				session.user.id = token.id as string;
+                session.user.email = token.email as string;
+                session.user.name = token.name as string;
+				session.user.role = token.role as UserRole;
+				session.user.persona = token.persona as UserPersona;
 			}
 			return session;
 		},
