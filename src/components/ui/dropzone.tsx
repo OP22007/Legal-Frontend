@@ -1,209 +1,570 @@
-//src/components/ui/dropzone.tsx
 "use client";
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-	CheckCircle2,
-	File as FileIcon,
-	Trash2,
-	UploadCloud,
-	XCircle,
-} from "lucide-react";
+import { UploadCloud, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "./button";
-import { Progress } from "./progress";
 import { cn } from "@/lib/utils";
 
+const STAGES = [
+  { key: "uploading", text: "Uploading Securely..." },
+  { key: "analyzing", text: "Analyzing Document..." },
+  { key: "generating", text: "Generating Detailed Analysis..." },
+  { key: "saving", text: "Finalizing Results..." },
+];
+
+type UploadStatus =
+  | "pending"
+  | "uploading"
+  | "analyzing"
+  | "generating"
+  | "saving"
+  | "success"
+  | "error";
+
 interface FileUpload {
-	file: File;
-	progress: number;
-	error?: string;
+  file: File;
+  status: UploadStatus;
+  error?: string;
 }
 
 export function Dropzone() {
-	const [files, setFiles] = useState<FileUpload[]>([]);
-	const [isUploading, setIsUploading] = useState(false);
+  const [file, setFile] = useState<FileUpload | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const router = useRouter();
 
-	const onDrop = useCallback((acceptedFiles: File[], rejectedFiles: any[]) => {
-		const newFiles: FileUpload[] = acceptedFiles.map((file) => ({
-			file,
-			progress: 0,
-		}));
+  const resetState = () => {
+    setFile(null);
+    setIsProcessing(false);
+  };
 
-		rejectedFiles.forEach((rejectedFile: any) => {
-			const error =
-				rejectedFile.errors[0]?.message || "File type not supported";
-			toast.error(`Error with ${rejectedFile.file.name}: ${error}`);
-		});
+  const onDrop = useCallback((acceptedFiles: File[], rejectedFiles: any[]) => {
+    if (rejectedFiles.length > 0) {
+      toast.error(
+        rejectedFiles[0].errors[0]?.message || "File type not supported"
+      );
+      return;
+    }
+    if (acceptedFiles.length > 0) {
+      setFile({ file: acceptedFiles[0], status: "pending" });
+    }
+  }, []);
 
-		setFiles((prevFiles) => [...prevFiles, ...newFiles]);
-	}, []);
+  useEffect(() => {
+    if (file && file.status === "pending") {
+      handleUpload(file.file);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [file]);
 
-	const { getRootProps, getInputProps, isDragActive } = useDropzone({
-		onDrop,
-		maxSize: 5 * 1024 * 1024, // 5MB
-		accept: {
-			"application/pdf": [".pdf"],
-			"application/msword": [".doc"],
-			"application/vnd.openxmlformats-officedocument.wordprocessingml.document": [
-				".docx",
-			],
-			"text/plain": [".txt"],
-		},
-	});
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    maxSize: 20 * 1024 * 1024,
+    multiple: false,
+    disabled: isProcessing,
+    accept: {
+      "application/pdf": [".pdf"],
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+        [".docx"],
+      "text/plain": [".txt"],
+    },
+  });
 
-	const removeFile = (fileName: string) => {
-		setFiles((prevFiles) =>
-			prevFiles.filter((f) => f.file.name !== fileName)
-		);
-	};
+  const setFileState = (newState: Partial<FileUpload>) => {
+    setFile((prev) => (prev ? { ...prev, ...newState } : null));
+  };
 
-	const simulateUpload = (fileUpload: FileUpload) => {
-		return new Promise<void>((resolve, reject) => {
-			const interval = setInterval(() => {
-				setFiles((prevFiles) =>
-					prevFiles.map((f) => {
-						if (f.file.name === fileUpload.file.name) {
-							const newProgress = f.progress + 10;
-							if (newProgress >= 100) {
-								clearInterval(interval);
-								resolve();
-								return { ...f, progress: 100 };
-							}
-							return { ...f, progress: newProgress };
-						}
-						return f;
-					})
-				);
-			}, 200);
-		});
-	};
+  const sleep = (ms: number) =>
+    new Promise((resolve) => setTimeout(resolve, ms));
 
-	const handleUpload = async () => {
-		if (files.length === 0) {
-			toast.error("Please select at least one file to upload.");
-			return;
-		}
+  const handleUpload = async (fileToProcess: File) => {
+    if (!fileToProcess) return;
+    setIsProcessing(true);
+    const toastId = toast.loading("Starting process...");
 
-		setIsUploading(true);
-		toast.info("Starting upload...");
+    try {
+      const formData = new FormData();
+      formData.append("file", fileToProcess);
 
-		for (const fileUpload of files) {
-			try {
-				await simulateUpload(fileUpload);
-			} catch (error) {
-				setFiles((prevFiles) =>
-					prevFiles.map((f) =>
-						f.file.name === fileUpload.file.name
-							? { ...f, error: "Upload failed" }
-							: f
-					)
-				);
-			}
-		}
+      const uploadPromise = fetch("http://localhost:8000/upload", {
+        method: "POST",
+        headers: { Authorization: "Bearer RANDOM_TOKEN_VALUE" },
+        body: formData,
+      });
 
-		setIsUploading(false);
-		toast.success("All files uploaded successfully!");
-	};
+      setFileState({ status: "uploading" });
+      toast.loading(STAGES[0].text, { id: toastId });
+      await sleep(5000);
 
-	return (
-		<div className="w-full">
-			<motion.div
-				{...getRootProps()}
-				className={cn(
-					"group relative flex flex-col items-center justify-center w-full h-64 cursor-pointer rounded-xl border-2 border-dashed border-muted-foreground/30 bg-background/20 transition-colors",
-					{
-						"border-primary/50 bg-primary/10": isDragActive,
-					}
-				)}
-				whileHover={{ scale: 1.02, borderColor: "hsl(var(--primary))" }}
-			>
-				<input {...getInputProps()} />
-				<div className="text-center">
-					<UploadCloud
-						className={cn(
-							"mx-auto h-16 w-16 text-muted-foreground/50 transition-transform",
-							{
-								"scale-110 text-primary": isDragActive,
-							}
-						)}
-					/>
-					{isDragActive ? (
-						<p className="mt-4 text-lg font-semibold text-primary">
-							Drop the files here...
-						</p>
-					) : (
-						<>
-							<p className="mt-4 text-lg font-semibold text-foreground">
-								Drag and drop files here, or click to select
-							</p>
-							<p className="mt-1 text-sm text-muted-foreground">
-								PDF, DOC, DOCX, TXT (up to 5MB)
-							</p>
-						</>
-					)}
-				</div>
-			</motion.div>
+      setFileState({ status: "generating" });
+      toast.loading(STAGES[2].text, { id: toastId });
 
-			<AnimatePresence>
-				{files.length > 0 && (
-					<motion.div
-						initial={{ opacity: 0, y: 20 }}
-						animate={{ opacity: 1, y: 0 }}
-						exit={{ opacity: 0, y: -20 }}
-						className="mt-8 space-y-4"
-					>
-						<div className="flex justify-between items-center">
-							<h3 className="text-xl font-semibold">Uploaded Files</h3>
-							<Button onClick={handleUpload} disabled={isUploading || files.every(f => f.progress === 100)}>
-								{isUploading ? "Uploading..." : "Upload All"}
-							</Button>
-						</div>
+      const fastApiResponse = await uploadPromise;
 
-						<ul className="space-y-3">
-							{files.map((fileUpload, index) => (
-								<motion.li
-									key={index}
-									initial={{ opacity: 0, x: -20 }}
-									animate={{ opacity: 1, x: 0 }}
-									exit={{ opacity: 0, x: 20 }}
-									className="relative flex items-center p-4 space-x-4 bg-background/50 border rounded-lg"
-								>
-									<FileIcon className="h-8 w-8 text-muted-foreground" />
-									<div className="flex-1">
-										<p className="font-medium text-foreground truncate">
-											{fileUpload.file.name}
-										</p>
-										<div className="flex items-center gap-2">
-											<Progress value={fileUpload.progress} className="w-full h-2" />
-											<span className="text-sm font-mono text-muted-foreground">
-												{fileUpload.progress}%
-											</span>
-										</div>
-										{fileUpload.error && <p className="text-xs text-destructive">{fileUpload.error}</p>}
-									</div>
-									{fileUpload.progress === 100 && !fileUpload.error ? (
-										<CheckCircle2 className="h-6 w-6 text-green-500" />
-									) : fileUpload.error ? (
-										<XCircle className="h-6 w-6 text-destructive" />
-									) : (
-										<Button
-											variant="ghost"
-											size="icon"
-											onClick={() => removeFile(fileUpload.file.name)}
-											className="text-muted-foreground hover:text-destructive"
-											disabled={isUploading}
-										>
-											<Trash2 className="h-5 w-5" />
-										</Button>
-									)}
-								</motion.li>
-							))}
-						</ul>
-					</motion.div>
-				)}
-			</AnimatePresence>
-		</div>
-	);
+      if (!fastApiResponse || !fastApiResponse.ok) {
+        let detail = "Analysis server error.";
+        try {
+          const j = await fastApiResponse?.json();
+          detail = j?.detail || detail;
+        } catch {
+          // ignore
+        }
+        throw new Error(detail);
+      }
+
+      const analysisResult = await fastApiResponse.json();
+
+      const saveResponse = await fetch("/api/documents/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          analysisResult,
+          fileMetadata: {
+            fileName: fileToProcess.name,
+            fileSize: fileToProcess.size,
+            fileType: fileToProcess.type,
+          },
+        }),
+      });
+
+      if (!saveResponse || !saveResponse.ok) {
+        let err = "Failed to save analysis.";
+        try {
+          const j = await saveResponse?.json();
+          err = j?.error || err;
+        } catch {
+          // ignore
+        }
+        throw new Error(err);
+      }
+
+      setFileState({ status: "saving" });
+      toast.loading(STAGES[3].text, { id: toastId });
+
+      setFileState({ status: "success" });
+      toast.success("Analysis complete!", { id: toastId });
+
+      setTimeout(
+        () => router.push(`/dashboard/documents/${analysisResult.document_id}`),
+        1500
+      );
+    } catch (error: any) {
+      setFileState({ status: "error", error: error?.message || "Unknown" });
+      toast.error(error?.message || "Error", { id: toastId });
+      setIsProcessing(false);
+    }
+  };
+
+  return (
+    <div className="w-full max-w-lg mx-auto">
+      <AnimatePresence mode="wait">
+        {!file ? (
+          <motion.div
+            key="dropzone"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+          >
+            <div
+              {...getRootProps()}
+              className={cn(
+                "group relative flex flex-col items-center justify-center w-full h-80 cursor-pointer rounded-2xl border-2 border-dashed border-muted-foreground/30 transition-all duration-300 bg-white/60 dark:bg-zinc-900/50 backdrop-blur-sm shadow-md",
+                {
+                  "border-primary/50 bg-primary/10 ring-2 ring-primary/30":
+                    isDragActive,
+                }
+              )}
+            >
+              <input {...getInputProps()} />
+              <div className="text-center p-8 z-10">
+                <motion.div
+                  animate={{
+                    scale: isDragActive ? 1.1 : 1,
+                    y: isDragActive ? -5 : 0,
+                  }}
+                >
+                  <UploadCloud className="mx-auto h-16 w-16 text-muted-foreground/60 group-hover:text-primary/80" />
+                </motion.div>
+                <p className="mt-4 text-xl font-semibold text-foreground">
+                  Drag & drop your document
+                </p>
+                <p className="mt-2 text-base text-muted-foreground">
+                  or click to select (Max 20MB)
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="progress"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+          >
+            <UploadProgress file={file} onReset={resetState} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ===================== ANIMATION ===========================
+const SecureAnalysisAnimation = ({ status }: { status: UploadStatus }) => {
+  const documentPath =
+    "M25 3H75C76.1046 3 77 3.89543 77 5V95C77 96.1046 76.1046 97 75 97H25C23.8954 97 23 96.1046 23 95V5C23 3.89543 23.8954 3 25 3Z";
+  const padlockPath =
+    "M71.5 50.5H28.5C27.1 50.5 26 51.6 26 53V73C26 74.4 27.1 75.5 28.5 75.5H71.5C72.9 75.5 74 74.4 74 73V53C74 51.6 72.9 50.5 71.5 50.5ZM50 67.5C47.5 67.5 45.5 65.5 45.5 63C45.5 60.5 47.5 58.5 50 58.5C52.5 58.5 54.5 60.5 54.5 63C54.5 65.5 52.5 67.5 50 67.5Z M62.5 50.5V41.5C62.5 34.6 56.9 29 50 29C43.1 29 37.5 34.6 37.5 41.5V50.5";
+
+  const isUploading = status === "uploading";
+  const isGenerating = status === "generating";
+  const isSuccess = status === "success";
+
+  const docColors = [
+    { fill: "#AECDE0", stroke: "#6A9CC9" }, // Muted Blue
+    { fill: "#C8E6C9", stroke: "#81C784" }, // Muted Green
+    { fill: "#FFF9C4", stroke: "#FFEB3B" }, // Muted Yellow
+    { fill: "#F8BBD0", stroke: "#F06292" }, // Muted Pink
+  ];
+  const documentPaths = [
+    "M30 30 H70 V70 H30 Z",
+    "M35 25 L65 25 L70 30 L70 75 L30 75 L30 30 Z",
+    "M40 20 H75 V60 H35 L40 20 Z",
+    "M30 35 C30 25 40 20 50 20 C60 20 70 25 70 35 V70 H30 Z",
+  ];
+
+  return (
+    <svg viewBox="0 0 100 100" className="w-full h-full">
+      <defs>
+        <linearGradient id="liquidGrad" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stopColor="#22c55e" stopOpacity="0.95" />
+          <stop offset="100%" stopColor="#16a34a" stopOpacity="0.85" />
+        </linearGradient>
+
+        {/* Filter for paper-like texture */}
+        <filter id="roughPaper" x="0%" y="0%" width="100%" height="100%">
+          <feTurbulence
+            type="fractalNoise"
+            baseFrequency="0.9"
+            numOctaves="1"
+            result="noise"
+          />
+          <feDiffuseLighting
+            in="noise"
+            lightingColor="white"
+            surfaceScale="2"
+            result="light"
+          >
+            <feDistantLight azimuth="225" elevation="45" />
+          </feDiffuseLighting>
+          <feComposite
+            in="SourceGraphic"
+            in2="light"
+            operator="arithmetic"
+            k1="0"
+            k2="1"
+            k3="0.5"
+            k4="0"
+          />
+        </filter>
+      </defs>
+
+      {/* UPLOADING: Colorful documents flying in with magnifier */}
+      <AnimatePresence>
+        {isUploading && (
+          <motion.g key="uploading-docs">
+            {/* Documents flying in with paper texture */}
+            {documentPaths.map((dPath, i) => (
+              <motion.path
+                key={`doc-upload-${i}`}
+                d={dPath}
+                fill={docColors[i].fill}
+                stroke={docColors[i].stroke}
+                strokeWidth="1"
+                filter="url(#roughPaper)" 
+                initial={{ opacity: 0, x: 50, y: 50, scale: 0.5, rotate: 45 }}
+                animate={{
+                  opacity: [0, 1, 1],
+                  x: 0,
+                  y: 0,
+                  scale: 1,
+                  rotate: -5 + i * 3,
+                }}
+                transition={{
+                  duration: 1.5,
+                  repeat: Infinity,
+                  repeatType: "reverse",
+                  delay: i * 0.3,
+                  ease: "easeInOut",
+                }}
+              />
+            ))}
+            {/* Magnifier static during upload */}
+            <g transform="translate(0, 10)">
+              <circle
+                cx="50"
+                cy="40"
+                r="14"
+                fill="rgba(180,180,180,0.05)"
+                stroke="hsl(210 90% 70%)"
+                strokeWidth="1.6"
+              />
+              <rect
+                x="62"
+                y="52"
+                width="12"
+                height="3"
+                rx="1.5"
+                transform="rotate(35 62 52)"
+                fill="hsl(210 90% 60%)"
+              />
+            </g>
+          </motion.g>
+        )}
+      </AnimatePresence>
+
+      {/* GENERATING: Colorful documents cycling with active magnifier */}
+      <AnimatePresence>
+        {isGenerating && (
+          <motion.g
+            key="generating"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+          >
+            {/* Cycling colorful documents with paper texture */}
+            {documentPaths.map((dPath, i) => (
+              <motion.path
+                key={`doc-generate-${i}`}
+                d={dPath}
+                fill={docColors[i].fill}
+                stroke={docColors[i].stroke}
+                strokeWidth="1"
+                filter="url(#roughPaper)" 
+                initial={{ opacity: 0, y: i * 2 }}
+                animate={{
+                  opacity: [0, 0.8, 0],
+                  y: [i * 2, i * 2 - 5, i * 2],
+                }}
+                transition={{
+                  duration: 2.5,
+                  repeat: Infinity,
+                  delay: i * 0.6,
+                  ease: "easeInOut",
+                }}
+              />
+            ))}
+
+            {/* Magnifier and its animations */}
+            <motion.g
+              initial={{ scale: 1 }}
+              animate={{ scale: [1, 1.02, 1] }}
+              transition={{ duration: 1.4, repeat: Infinity }}
+            >
+              <motion.circle
+                cx="50"
+                cy="40"
+                r="14"
+                fill="rgba(255,255,255,0.02)"
+                stroke="hsl(210 90% 60%)"
+                strokeWidth="1.6"
+                initial={{ rotate: 0 }}
+                animate={{ rotate: [0, 6, -6, 0] }}
+                transition={{ duration: 2.8, repeat: Infinity }}
+              />
+              <motion.rect
+                x="62"
+                y="52"
+                width="12"
+                height="3"
+                rx="1.5"
+                transform="rotate(35 62 52)"
+                fill="hsl(210 90% 50%)"
+                initial={{ opacity: 0.9 }}
+                animate={{ opacity: [0.9, 0.5, 0.9] }}
+                transition={{ duration: 1.6, repeat: Infinity }}
+              />
+              <motion.path
+                d="M40 40 A10 10 0 0 1 60 40"
+                stroke="rgba(255,255,255,0.06)"
+                strokeWidth="1.6"
+                fill="none"
+                initial={{ pathLength: 0 }}
+                animate={{ pathLength: [0, 1, 0] }}
+                transition={{ duration: 1.6, repeat: Infinity, ease: "linear" }}
+              />
+            </motion.g>
+
+            {/* Particles and bars */}
+            {Array.from({ length: 6 }).map((_, i) => (
+              <motion.circle
+                key={"p" + i}
+                cx={50 + Math.cos((i / 6) * Math.PI * 2) * 22}
+                cy={40 + Math.sin((i / 6) * Math.PI * 2) * 22}
+                r={1.4}
+                fill="#22c55e"
+                initial={{ opacity: 0 }}
+                animate={{
+                  opacity: [0.2, 1, 0.2],
+                  cx: [
+                    50 + Math.cos((i / 6) * Math.PI * 2) * 20,
+                    50 + Math.cos((i / 6) * Math.PI * 2) * 24,
+                    50 + Math.cos((i / 6) * Math.PI * 2) * 20,
+                  ],
+                }}
+                transition={{
+                  delay: i * 0.12,
+                  duration: 1.8,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+              />
+            ))}
+            {Array.from({ length: 7 }).map((_, i) => {
+              const x = 24 + i * 8;
+              return (
+                <motion.rect
+                  key={"b" + i}
+                  x={x}
+                  y={64}
+                  width={4}
+                  rx={1}
+                  height={8}
+                  initial={{ height: 6, y: 66, opacity: 0.8 }}
+                  animate={{
+                    height: [6, 18 - (i % 3) * 3, 6],
+                    y: [66, 58 + (i % 3) * 2, 66],
+                    opacity: [0.6, 1, 0.6],
+                  }}
+                  transition={{
+                    delay: i * 0.08,
+                    duration: 1.3,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                  fill="#34d399"
+                />
+              );
+            })}
+          </motion.g>
+        )}
+      </AnimatePresence>
+
+      {/* SUCCESS: Final document with padlock */}
+      <AnimatePresence>
+        {isSuccess && (
+          <motion.g
+            key="success-padlock"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+          >
+            <motion.path
+              d={documentPath}
+              stroke="var(--foreground)"
+              strokeWidth="1.6"
+              fill="url(#liquidGrad)"
+              initial={{ opacity: 0.8 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5 }}
+            />
+            <motion.path
+              d={padlockPath}
+              fill="#FFD700"
+              stroke="black"
+              strokeWidth="2"
+              initial={{ scale: 0, y: 30, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              transition={{ type: "spring", stiffness: 160, delay: 0.5 }}
+            />
+          </motion.g>
+        )}
+      </AnimatePresence>
+    </svg>
+  );
+};
+
+function UploadProgress({
+  file,
+  onReset,
+}: {
+  file: FileUpload;
+  onReset: () => void;
+}) {
+  const currentStage = STAGES.find((s) => s.key === file.status);
+
+  return (
+    <div
+      className={cn(
+        "relative flex flex-col items-center justify-center w-full h-80 rounded-2xl border border-muted-foreground/10 p-8 transition-colors bg-white/70 dark:bg-zinc-900/50 backdrop-blur-sm shadow-md",
+        {
+          "border-green-500/40": file.status === "success",
+          "border-destructive/30": file.status === "error",
+        }
+      )}
+    >
+      <div className="text-center">
+        <div className="relative w-32 h-32 mx-auto flex items-center justify-center">
+          {file.status === "error" ? (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.5 }}
+              animate={{ opacity: 1, scale: 1 }}
+            >
+              <AlertCircle className="h-20 w-20 text-destructive" />
+            </motion.div>
+          ) : (
+            <SecureAnalysisAnimation status={file.status} />
+          )}
+        </div>
+
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={file.status + "_text"}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="mt-6"
+          >
+            {file.status === "success" && (
+              <>
+                <h3 className="text-2xl font-semibold text-foreground">
+                  Analysis Complete!
+                </h3>
+                <p className="mt-1 text-muted-foreground">
+                  Redirecting to results...
+                </p>
+              </>
+            )}
+            {file.status === "error" && (
+              <>
+                <h3 className="text-2xl font-semibold text-destructive">
+                  Processing Failed
+                </h3>
+                <p className="mt-1 text-muted-foreground max-w-xs mx-auto">
+                  {file.error}
+                </p>
+                <Button onClick={onReset} variant="secondary" className="mt-6">
+                  Try Another File
+                </Button>
+              </>
+            )}
+            {currentStage && (
+              <>
+                <h3 className="text-2xl font-semibold text-foreground">
+                  {currentStage.text}
+                </h3>
+                <p className="mt-1 text-muted-foreground truncate max-w-xs mx-auto">
+                  {file.file.name}
+                </p>
+              </>
+            )}
+          </motion.div>
+        </AnimatePresence>
+      </div>
+    </div>
+  );
 }

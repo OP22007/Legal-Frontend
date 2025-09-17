@@ -120,3 +120,32 @@
     @apply bg-background text-foreground;
   }
 }
+
+@keyframes gradient-xy {
+  0%, 100% {
+    background-size: 400% 400%;
+    background-position: top center;
+  }
+  50% {
+    background-size: 200% 200%;
+    background-position: bottom center;
+  }
+}
+@keyframes spin-reverse {
+  from {
+    transform: rotate(360deg);
+  }
+}
+
+/* Add this for the dot pattern background */
+.dot-grid-background {
+    background-image: radial-gradient(circle at 1px 1px, hsl(var(--muted-foreground) / 0.1) 1px, transparent 0);
+    background-size: 1.5rem 1.5rem;
+}
+.legal-grid-background {
+	background-color: hsl(var(--background));
+	background-image:
+		linear-gradient(to right, hsl(var(--border)) 1px, transparent 1px),
+		linear-gradient(to bottom, hsl(var(--border)) 1px, transparent 1px);
+	background-size: 4rem 4rem;
+}
