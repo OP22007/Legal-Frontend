@@ -147,7 +147,7 @@ export function Dropzone() {
       toast.success("Analysis complete!", { id: toastId });
 
       setTimeout(
-        () => router.push(`/dashboard/documents/${analysisResult.document_id}`),
+        () => router.push(`/analysis/${analysisResult.document_id}`),
         1500
       );
     } catch (error: any) {
