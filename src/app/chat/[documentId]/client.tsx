@@ -2,6 +2,8 @@
 
 import * as React from 'react';
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useSession } from 'next-auth/react'; // Import useSession
+import ReactMarkdown from 'react-markdown';
 import { v4 as uuidv4 } from 'uuid';
 import { AnimatePresence, motion } from 'framer-motion';
 import { SendHorizonal, PanelLeftClose, PanelRightClose, GripVertical, FileText, MessageSquare, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -99,6 +101,7 @@ function useResizable(initialWidth: number, minWidth: number, maxWidth: number) 
 
 const Typewriter = ({ text }: { text: string }) => {
   const [displayedText, setDisplayedText] = useState('');
+  const [isTyping, setIsTyping] = useState(true);
 
   useEffect(() => {
     let i = 0;
@@ -108,23 +111,30 @@ const Typewriter = ({ text }: { text: string }) => {
         i++;
       } else {
         clearInterval(typing);
+        setIsTyping(false);
       }
     }, 15);
 
     return () => clearInterval(typing);
   }, [text]);
 
-  return (
-    <div className="whitespace-pre-wrap">
-      {displayedText}
-      <motion.span
-        initial={{ opacity: 0 }}
-        animate={{ opacity: [0, 1, 0] }}
-        transition={{ repeat: Infinity, duration: 1.2 }}
-        className="ml-px inline-block h-4 w-0.5 bg-current"
-      />
-    </div>
-  );
+  if (isTyping) {
+    return (
+      <div className="whitespace-pre-wrap">
+        {displayedText}
+        <motion.span
+          initial={{ opacity: 0 }}
+          animate={{ opacity: [0, 1, 0] }}
+          transition={{ repeat: Infinity, duration: 1.0, ease: "linear" }}
+          className="ml-px inline-block"
+        >
+          ▋
+        </motion.span>
+      </div>
+    );
+  }
+
+  return <ReactMarkdown>{text}</ReactMarkdown>;
 };
 
 const ChatBubble = React.memo(({ message, isLast }: { message: Message, isLast: boolean }) => {
@@ -166,7 +176,7 @@ const ChatBubble = React.memo(({ message, isLast }: { message: Message, isLast: 
         {isUser ? (
           <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>
         ) : (
-          isLast ? <Typewriter text={message.content} /> : <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>
+          isLast ? <Typewriter text={message.content} /> : <ReactMarkdown>{message.content}</ReactMarkdown>
         )}
         {!isUser && message.sources && (
           <motion.div
@@ -224,6 +234,27 @@ export function ChatClient({ documentId, documentName, documentUrl }: ChatClient
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const isLg = useMediaQuery('(min-width: 1024px)');
+  const { data: session } = useSession(); // Get session
+
+  // Fetch chat history on mount
+  useEffect(() => {
+    const fetchHistory = async () => {
+      if (!session) return;
+      setIsLoading(true);
+      try {
+        const response = await fetch(`/api/chat?documentId=${documentId}`);
+        if (response.ok) {
+          const history = await response.json();
+          setMessages(history);
+        }
+      } catch (error) {
+        console.error('Failed to fetch chat history:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchHistory();
+  }, [documentId, session]);
   
   // Resizable hook with responsive initial width
   const initialWidth = useMemo(() => {
@@ -262,9 +293,9 @@ export function ChatClient({ documentId, documentName, documentUrl }: ChatClient
     setInput(e.target.value);
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!input.trim() || isLoading) return;
+    if (!input.trim() || isLoading || !session) return;
 
     const userMessage: Message = { id: uuidv4(), role: 'user', content: input.trim() };
     setMessages((prev) => [...prev, userMessage]);
@@ -272,21 +303,15 @@ export function ChatClient({ documentId, documentName, documentUrl }: ChatClient
     setInput('');
 
     try {
-      const response = await fetch('http://localhost:8000/chat', {
+      const response = await fetch('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer token` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: input.trim(), document_id: documentId }),
       });
 
       if (!response.ok) throw new Error('Network response was not ok');
 
-      const data = await response.json();
-      const assistantMessage: Message = {
-        id: data.id,
-        role: 'assistant',
-        content: data.response,
-        sources: data.sources,
-      };
+      const assistantMessage = await response.json();
       setMessages((prev) => [...prev, assistantMessage]);
     } catch (error) {
       console.error('Failed to fetch chat response:', error);
