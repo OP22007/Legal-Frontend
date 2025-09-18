@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { useSession } from 'next-auth/react'; // Import useSession
+import { useSession } from 'next-auth/react';
 import ReactMarkdown from 'react-markdown';
 import { v4 as uuidv4 } from 'uuid';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -99,7 +99,7 @@ function useResizable(initialWidth: number, minWidth: number, maxWidth: number) 
   return { width, handleMouseDown, isDragging };
 }
 
-const Typewriter = ({ text }: { text: string }) => {
+const Typewriter = ({ text, onAnimationComplete }: { text: string, onAnimationComplete: () => void }) => {
   const [displayedText, setDisplayedText] = useState('');
   const [isTyping, setIsTyping] = useState(true);
 
@@ -112,11 +112,12 @@ const Typewriter = ({ text }: { text: string }) => {
       } else {
         clearInterval(typing);
         setIsTyping(false);
+        onAnimationComplete();
       }
     }, 15);
 
     return () => clearInterval(typing);
-  }, [text]);
+  }, [text, onAnimationComplete]);
 
   if (isTyping) {
     return (
@@ -137,8 +138,9 @@ const Typewriter = ({ text }: { text: string }) => {
   return <ReactMarkdown>{text}</ReactMarkdown>;
 };
 
-const ChatBubble = React.memo(({ message, isLast }: { message: Message, isLast: boolean }) => {
+const ChatBubble = React.memo(({ message, isLast, isLoading, setIsLoading }: { message: Message, isLast: boolean, isLoading: boolean, setIsLoading: (value: boolean) => void }) => {
   const isUser = message.role === 'user';
+  const showTypewriter = isLast && isLoading && message.role === 'assistant';
 
   return (
     <motion.div
@@ -176,7 +178,7 @@ const ChatBubble = React.memo(({ message, isLast }: { message: Message, isLast: 
         {isUser ? (
           <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>
         ) : (
-          isLast ? <Typewriter text={message.content} /> : <ReactMarkdown>{message.content}</ReactMarkdown>
+          showTypewriter ? <Typewriter text={message.content} onAnimationComplete={() => setIsLoading(false)} /> : <ReactMarkdown>{message.content}</ReactMarkdown>
         )}
         {!isUser && message.sources && (
           <motion.div
@@ -228,6 +230,7 @@ export function ChatClient({ documentId, documentName, documentUrl }: ChatClient
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isThinking, setIsThinking] = useState(false);
   const [isDocViewerOpen, setIsDocViewerOpen] = useState(false);
   const [isDocCollapsed, setIsDocCollapsed] = useState(false);
   const [isChatCollapsed, setIsChatCollapsed] = useState(false);
@@ -240,7 +243,10 @@ export function ChatClient({ documentId, documentName, documentUrl }: ChatClient
   useEffect(() => {
     const fetchHistory = async () => {
       if (!session) return;
-      setIsLoading(true);
+      // Set loading true only for initial fetch, not for subsequent sends
+      if (messages.length === 0) {
+        setIsLoading(true);
+      }
       try {
         const response = await fetch(`/api/chat?documentId=${documentId}`);
         if (response.ok) {
@@ -250,7 +256,9 @@ export function ChatClient({ documentId, documentName, documentUrl }: ChatClient
       } catch (error) {
         console.error('Failed to fetch chat history:', error);
       } finally {
-        setIsLoading(false);
+        if (messages.length === 0) {
+          setIsLoading(false);
+        }
       }
     };
     fetchHistory();
@@ -299,6 +307,7 @@ export function ChatClient({ documentId, documentName, documentUrl }: ChatClient
 
     const userMessage: Message = { id: uuidv4(), role: 'user', content: input.trim() };
     setMessages((prev) => [...prev, userMessage]);
+    setIsThinking(true);
     setIsLoading(true);
     setInput('');
 
@@ -312,9 +321,11 @@ export function ChatClient({ documentId, documentName, documentUrl }: ChatClient
       if (!response.ok) throw new Error('Network response was not ok');
 
       const assistantMessage = await response.json();
+      setIsThinking(false);
       setMessages((prev) => [...prev, assistantMessage]);
     } catch (error) {
       console.error('Failed to fetch chat response:', error);
+      setIsThinking(false);
       const errorMessage: Message = {
         id: uuidv4(),
         role: 'assistant',
@@ -322,7 +333,7 @@ export function ChatClient({ documentId, documentName, documentUrl }: ChatClient
       };
       setMessages((prev) => [...prev, errorMessage]);
     } finally {
-      setIsLoading(false);
+      // setIsLoading(false); // We will set this to false when the typewriter animation is complete
     }
   };
 
@@ -572,10 +583,16 @@ export function ChatClient({ documentId, documentName, documentUrl }: ChatClient
                 >
                   <AnimatePresence mode="popLayout">
                     {messages.map((m, i) => (
-                      <ChatBubble key={m.id} message={m} isLast={i === messages.length - 1 && m.role === 'assistant'} />
+                      <ChatBubble 
+                        key={m.id} 
+                        message={m} 
+                        isLast={i === messages.length - 1}
+                        isLoading={isLoading} 
+                        setIsLoading={setIsLoading}
+                      />
                     ))}
                   </AnimatePresence>
-                  {isLoading && (
+                  {isThinking && (
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -610,6 +627,7 @@ export function ChatClient({ documentId, documentName, documentUrl }: ChatClient
                       </motion.div>
                     </motion.div>
                   )}
+                  
                   {/* Invisible div for scrolling */}
                   <div ref={messagesEndRef} />
                 </motion.div>
