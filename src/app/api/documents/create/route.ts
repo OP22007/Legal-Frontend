@@ -17,7 +17,7 @@ const calculateRisk = (risks: { severity: string }[]) => {
 		return acc + (scoreMap[risk.severity.toUpperCase()] || 0);
 	}, 0);
 	const averageScore = totalScore / risks.length;
-	let riskLevel = RiskLevel.LOW;
+	let riskLevel: RiskLevel = RiskLevel.LOW;
 	if (averageScore >= 5) {
 		riskLevel = RiskLevel.CRITICAL;
 	} else if (averageScore >= 3) {

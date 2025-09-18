@@ -49,7 +49,7 @@ export const authOptions = {
 	],
 
 	session: {
-		strategy: "jwt",
+		strategy: "jwt" as const,
 	},
 
 	pages: {
@@ -57,7 +57,7 @@ export const authOptions = {
 	},
 
 	callbacks: {
-		async signIn({ user, account, profile }) {
+		async signIn({ user, account, profile }: { user: any; account: any; profile?: any }) {
 			// Allow credentials login
 			if (account?.provider === "credentials") {
 				return true;
@@ -78,7 +78,7 @@ export const authOptions = {
 			// Deny other providers by default
 			return false;
 		},
-		async jwt({ token, user }) {
+		async jwt({ token, user }: { token: any; user?: any }) {
 			if (user) {
 				token.id = user.id;
                 token.email = user.email;
@@ -88,7 +88,7 @@ export const authOptions = {
 			}
 			return token;
 		},
-		async session({ session, token }) {
+		async session({ session, token }: { session: any; token: any }) {
 			if (session.user) {
 				session.user.id = token.id as string;
                 session.user.email = token.email as string;

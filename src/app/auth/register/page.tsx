@@ -18,7 +18,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 
 const registerSchema = z.object({
-	acceptTerms: z.literal(true, {
+	acceptTerms: z.boolean().refine(val => val === true, {
 		message: "You must accept the terms and conditions",
 	}),
 	firstName: z.string().min(1, { message: "First name is required" }),

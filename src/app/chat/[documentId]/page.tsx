@@ -21,7 +21,7 @@ async function getDocument(documentId: string) {
 }
 
 export default async function ChatPage({ params }: ChatPageProps) {
-  const { data: session } = await getServerSession(authOptions);
+  // const { data: session } = await getServerSession(authOptions);
   // if (!session?.user?.id) {
   //   // Or redirect to login
   //   return notFound();

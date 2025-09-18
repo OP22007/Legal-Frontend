@@ -342,12 +342,12 @@ export const AnalysisClient = ({ document }: { document: DocumentWithAnalysis })
 
     const handleDownloadPdf = () => {
         const proxiedUrl = `/api/document-proxy?url=${encodeURIComponent(document.storageUrl)}`;
-        const link = document.createElement('a');
+        const link = window.document.createElement('a');
         link.href = proxiedUrl;
         link.download = document.originalFileName || 'document.pdf';
-        document.body.appendChild(link);
+        window.document.body.appendChild(link);
         link.click();
-        document.body.removeChild(link);
+        window.document.body.removeChild(link);
         toast.success('Downloading PDF...');
     };
 
@@ -423,7 +423,7 @@ export const AnalysisClient = ({ document }: { document: DocumentWithAnalysis })
                         </div>
                     </TabsContent>
                     <TabsContent value="document" className="py-6">
-                        <DocumentViewer storageUrl={document.storageUrl} glossaryTerms={document.glossaryTerms} />
+                        <DocumentViewer storageUrl={document.storageUrl} glossaryTerms={document.glossaryTerms.map(term => ({ ...term, simplifiedDefinition: term.simplifiedDefinition ?? undefined }))} />
                     </TabsContent>
                 </Tabs>
             </main>

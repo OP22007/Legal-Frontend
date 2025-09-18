@@ -7,9 +7,9 @@ export default function Template({ children }: { children: React.ReactNode }) {
 	const pathname = usePathname();
 
 	const variants = {
-		hidden: { opacity: 0, x: "100%", transition: { duration: 0.5, ease: "easeInOut" } },
-		enter: { opacity: 1, x: 0, transition: { duration: 0.5, ease: "easeInOut" } },
-		exit: { opacity: 0, x: "-100%", transition: { duration: 0.5, ease: "easeInOut" } },
+		hidden: { opacity: 0, x: "100%", transition: { duration: 0.5, ease: [0.4, 0, 0.2, 1] as const } },
+		enter: { opacity: 1, x: 0, transition: { duration: 0.5, ease: [0.4, 0, 0.2, 1] as const } },
+		exit: { opacity: 0, x: "-100%", transition: { duration: 0.5, ease: [0.4, 0, 0.2, 1] as const } },
 	};
 
 	return (

@@ -17,6 +17,7 @@ import {
   ZoomIn, ZoomOut, Book, RotateCw, Download, Printer, Expand, Shrink,
   Maximize2, ChevronLeft, ChevronRight, X, Loader2
 } from "lucide-react";
+import React from "react";
 
 if (typeof window !== 'undefined' && !pdfjs.GlobalWorkerOptions.workerSrc) {
   pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
@@ -216,7 +217,7 @@ const DocumentViewer = ({ storageUrl, glossaryTerms = [] }: {
         lastEndIndex = endIndex;
       }
     }
-    const result: (string | JSX.Element)[] = [];
+    const result: (string | React.JSX.Element)[] = [];
     let lastIndex = 0;
     for (const match of uniqueMatches) {
       if (match.index > lastIndex) {
