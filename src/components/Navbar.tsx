@@ -21,8 +21,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 const navLinks = [
 	{ href: "/", label: "Home" },
-	{ href: "/about", label: "About" },
-	{ href: "/services", label: "Services" },
+	{ href: "/upload", label: "Upload" },
+	{ href: "/dashboard", label: "Documents" },
 	{ href: "/contact", label: "Contact" },
 ];
 

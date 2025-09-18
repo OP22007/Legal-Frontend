@@ -146,7 +146,7 @@ export default function UploadPage() {
 					<Testimonials />
 				</MotionWrapper>
 			</main>
-			<Footer />
+			{/* <Footer /> */}
 		</div>
 	);
 }
