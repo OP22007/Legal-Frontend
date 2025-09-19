@@ -3,3 +3,4 @@ node_modules
 temp_files
 .env
 /src/generated/prisma
+.vercel

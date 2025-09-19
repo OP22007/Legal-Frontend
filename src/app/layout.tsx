@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { SessionProvider } from "next-auth/react";
 import Providers from "@/components/providers";
 import Footer  from "@/components/Footer";
+import { Analytics } from "@vercel/analytics/next"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -43,11 +44,12 @@ export default function RootLayout({
         <Navbar />
         <div className="pt-16">
           {children}
-          </div>
-          </ThemeProvider>
-          </Providers>
-        <Toaster position="bottom-right" richColors/>
-        <Footer/>
+        </div>
+      </ThemeProvider>
+    </Providers>
+    <Analytics />
+    <Toaster position="bottom-right" richColors/>
+    <Footer/>
       </body>
     </html>
   );
