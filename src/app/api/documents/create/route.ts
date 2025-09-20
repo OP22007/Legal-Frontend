@@ -52,7 +52,8 @@ export async function POST(req: Request) {
             file_url,
 			summary,
 			risk_alerts,
-			glossary
+			glossary,
+			key_points
 		} = analysisResult;
 		const {
 			fileName,
@@ -103,6 +104,44 @@ export async function POST(req: Request) {
 						definition: term.definition,
 						simplifiedDefinition: term.definition,
 					})),
+				},
+				keyPoints: {
+					create: key_points.map((point: string, index: number) => {
+						// Try to categorize the key point based on content
+						let category: string = 'OTHER';
+						const pointLower = point.toLowerCase();
+						
+						if (pointLower.includes('payment') || pointLower.includes('financial') || pointLower.includes('money')) {
+							category = 'PAYMENT_TERMS';
+						} else if (pointLower.includes('termination') || pointLower.includes('end') || pointLower.includes('cancel')) {
+							category = 'TERMINATION_CLAUSES';
+						} else if (pointLower.includes('liability') || pointLower.includes('responsibility')) {
+							category = 'LIABILITY';
+						} else if (pointLower.includes('warranty') || pointLower.includes('guarantee')) {
+							category = 'WARRANTIES';
+						} else if (pointLower.includes('intellectual property') || pointLower.includes('copyright') || pointLower.includes('patent')) {
+							category = 'INTELLECTUAL_PROPERTY';
+						} else if (pointLower.includes('confidential') || pointLower.includes('privacy') || pointLower.includes('nda')) {
+							category = 'CONFIDENTIALITY';
+						} else if (pointLower.includes('dispute') || pointLower.includes('arbitration') || pointLower.includes('court')) {
+							category = 'DISPUTE_RESOLUTION';
+						} else if (pointLower.includes('governing law') || pointLower.includes('jurisdiction')) {
+							category = 'GOVERNING_LAW';
+						} else if (pointLower.includes('force majeure') || pointLower.includes('act of god')) {
+							category = 'FORCE_MAJEURE';
+						} else if (pointLower.includes('amendment') || pointLower.includes('modification')) {
+							category = 'AMENDMENTS';
+						}
+
+						return {
+							category: category as any,
+							title: point.length > 100 ? point.substring(0, 97) + '...' : point,
+							description: point,
+							importance: Math.max(1, Math.min(5, 6 - index)), // Higher importance for earlier points
+							textSnippet: point,
+							userFriendlyTitle: point.length > 50 ? point.substring(0, 47) + '...' : point,
+						};
+					}),
 				},
 			},
 		});

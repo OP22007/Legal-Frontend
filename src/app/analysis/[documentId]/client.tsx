@@ -155,25 +155,120 @@ const KeyPointsSection = ({ keyPoints }: { keyPoints: KeyPoint[] }) => {
     const containerVariants = { hidden: {}, show: { transition: { staggerChildren: 0.1 } } };
     const itemVariants = { hidden: { opacity: 0, x: -20 }, show: { opacity: 1, x: 0 } };
 
+    // Group key points by category
+    const groupedPoints = useMemo(() => {
+        const groups: { [key: string]: KeyPoint[] } = {};
+        keyPoints.forEach(point => {
+            const category = point.category || 'OTHER';
+            if (!groups[category]) groups[category] = [];
+            groups[category].push(point);
+        });
+        return groups;
+    }, [keyPoints]);
+
+    const getCategoryColor = (category: string) => {
+        const colors: { [key: string]: string } = {
+            'PAYMENT_TERMS': 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-800',
+            'TERMINATION_CLAUSES': 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 border-red-200 dark:border-red-800',
+            'LIABILITY': 'bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 border-orange-200 dark:border-orange-800',
+            'WARRANTIES': 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 border-green-200 dark:border-green-800',
+            'INTELLECTUAL_PROPERTY': 'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 border-purple-200 dark:border-purple-800',
+            'CONFIDENTIALITY': 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800',
+            'DISPUTE_RESOLUTION': 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800',
+            'GOVERNING_LAW': 'bg-teal-100 dark:bg-teal-900/30 text-teal-800 dark:text-teal-300 border-teal-200 dark:border-teal-800',
+            'FORCE_MAJEURE': 'bg-pink-100 dark:bg-pink-900/30 text-pink-800 dark:text-pink-300 border-pink-200 dark:border-pink-800',
+            'AMENDMENTS': 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-800 dark:text-cyan-300 border-cyan-200 dark:border-cyan-800',
+            'OTHER': 'bg-gray-100 dark:bg-gray-900/30 text-gray-800 dark:text-gray-300 border-gray-200 dark:border-gray-800'
+        };
+        return colors[category] || colors['OTHER'];
+    };
+
+    const getImportanceIcon = (importance: number) => {
+        if (importance >= 4) return '⭐⭐⭐⭐⭐';
+        if (importance >= 3) return '⭐⭐⭐⭐';
+        if (importance >= 2) return '⭐⭐⭐';
+        return '⭐⭐';
+    };
+
+    if (keyPoints.length === 0) {
+        return (
+            <SectionWrapper>
+                <Card className="bg-white/60 dark:bg-black/20 backdrop-blur-lg border border-gray-200 dark:border-white/10">
+                    <CardHeader><CardTitle className="flex items-center text-gray-800 dark:text-white"><BookOpen className="mr-2"/> Key Points</CardTitle></CardHeader>
+                    <CardContent>
+                        <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                            <BookOpen className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                            <p>No key points extracted from this document.</p>
+                        </div>
+                    </CardContent>
+                </Card>
+            </SectionWrapper>
+        );
+    }
+
     return (
         <SectionWrapper>
             <Card className="bg-white/60 dark:bg-black/20 backdrop-blur-lg border border-gray-200 dark:border-white/10">
-                <CardHeader><CardTitle className="flex items-center text-gray-800 dark:text-white"><BookOpen className="mr-2"/> Key Points</CardTitle></CardHeader>
+                <CardHeader>
+                    <CardTitle className="flex items-center text-gray-800 dark:text-white">
+                        <BookOpen className="mr-2"/> Key Points ({keyPoints.length})
+                    </CardTitle>
+                </CardHeader>
                 <CardContent>
                     <motion.div variants={containerVariants} initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.2 }}>
-                        <Accordion type="single" collapsible className="w-full text-gray-800 dark:text-white">
-                            {keyPoints.map(point => (
-                                <motion.div key={point.id} variants={itemVariants}>
-                                    <AccordionItem value={point.id} className="border-b border-gray-200 dark:border-white/10">
-                                        <AccordionTrigger>{point.title}</AccordionTrigger>
-                                        <AccordionContent className="text-gray-600 dark:text-gray-300">
-                                            <p>{point.description}</p>
-                                            <p className="text-sky-600 dark:text-sky-300/80 mt-2 italic"><strong>Impact:</strong> {point.potentialImpact}</p>
-                                        </AccordionContent>
-                                    </AccordionItem>
-                                </motion.div>
-                            ))}
-                        </Accordion>
+                        {Object.entries(groupedPoints).map(([category, points]) => (
+                            <div key={category} className="mb-6 last:mb-0">
+                                <h3 className="text-lg font-semibold mb-3 text-gray-700 dark:text-gray-300 capitalize">
+                                    {category.replace(/_/g, ' ').toLowerCase()} ({points.length})
+                                </h3>
+                                <Accordion type="single" collapsible className="w-full text-gray-800 dark:text-white">
+                                    {points.map(point => (
+                                        <motion.div key={point.id} variants={itemVariants}>
+                                            <AccordionItem value={point.id} className="border-b border-gray-200 dark:border-white/10">
+                                                <AccordionTrigger className="hover:no-underline">
+                                                    <div className="flex items-center justify-between w-full mr-4">
+                                                        <div className="flex items-center gap-3">
+                                                            <span className={`px-2 py-1 text-xs font-medium rounded-full border ${getCategoryColor(point.category || 'OTHER')}`}>
+                                                                {point.category?.replace(/_/g, ' ') || 'OTHER'}
+                                                            </span>
+                                                            <span className="font-medium text-left">{point.title}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                                                            <span>{getImportanceIcon(point.importance)}</span>
+                                                            <span className="text-xs">#{point.importance}</span>
+                                                        </div>
+                                                    </div>
+                                                </AccordionTrigger>
+                                                <AccordionContent className="text-gray-600 dark:text-gray-300">
+                                                    <div className="space-y-3">
+                                                        <p className="text-sm leading-relaxed">{point.description}</p>
+
+                                                        {point.explanation && (
+                                                            <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border-l-4 border-blue-400">
+                                                                <h4 className="font-semibold text-blue-800 dark:text-blue-300 text-sm mb-1">Explanation</h4>
+                                                                <p className="text-blue-700 dark:text-blue-200 text-sm">{point.explanation}</p>
+                                                            </div>
+                                                        )}
+
+                                                        {point.potentialImpact && (
+                                                            <div className="bg-amber-50 dark:bg-amber-900/20 p-3 rounded-lg border-l-4 border-amber-400">
+                                                                <h4 className="font-semibold text-amber-800 dark:text-amber-300 text-sm mb-1">Potential Impact</h4>
+                                                                <p className="text-amber-700 dark:text-amber-200 text-sm">{point.potentialImpact}</p>
+                                                            </div>
+                                                        )}
+
+                                                        <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 pt-2 border-t border-gray-200 dark:border-white/10">
+                                                            <span>Importance: {point.importance}/5</span>
+                                                            {point.pageNumber && <span>Page {point.pageNumber}</span>}
+                                                        </div>
+                                                    </div>
+                                                </AccordionContent>
+                                            </AccordionItem>
+                                        </motion.div>
+                                    ))}
+                                </Accordion>
+                            </div>
+                        ))}
                     </motion.div>
                 </CardContent>
             </Card>

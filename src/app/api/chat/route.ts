@@ -47,9 +47,9 @@ export async function POST(req: NextRequest) {
         content: message,
       },
     });
-
+    const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8000';
     // 3. Call the external AI service
-    const response = await fetch('http://localhost:8000/chat', {
+    const response = await fetch(`${BACKEND_URL}/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer token` }, // This token needs to be managed securely
       body: JSON.stringify({ message, document_id: documentId }),

@@ -83,12 +83,12 @@ export function Dropzone() {
     if (!fileToProcess) return;
     setIsProcessing(true);
     const toastId = toast.loading("Starting process...");
-
+    const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8000';
     try {
       const formData = new FormData();
       formData.append("file", fileToProcess);
 
-      const uploadPromise = fetch("http://localhost:8000/upload", {
+      const uploadPromise = fetch(`${BACKEND_URL}/upload`, {
         method: "POST",
         headers: { Authorization: "Bearer RANDOM_TOKEN_VALUE" },
         body: formData,
