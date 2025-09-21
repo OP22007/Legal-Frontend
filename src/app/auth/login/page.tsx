@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { TranslatedText } from "@/components/TranslatedText";
 
 const loginSchema = z.object({
 	email: z.string().email({ message: "Invalid email address" }),
@@ -75,12 +76,12 @@ export default function LoginPage() {
 				>
 					<motion.div variants={itemVariants} className="space-y-2 text-center lg:text-left">
 						<h2 className="text-3xl font-bold tracking-tight text-foreground">
-							Welcome back
+							<TranslatedText text="Welcome back" />
 						</h2>
 						<p className="text-muted-foreground">
-							Don't have an account?{" "}
+							<TranslatedText text="Don't have an account?" />{" "}
 							<Link href="/auth/register" className="font-medium text-primary hover:underline">
-								Sign up
+								<TranslatedText text="Sign up" />
 							</Link>
 						</p>
 					</motion.div>
@@ -88,14 +89,14 @@ export default function LoginPage() {
 					<motion.div variants={itemVariants}>
 						<form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
 							<div className="space-y-2">
-								<Label htmlFor="email">Email</Label>
+								<Label htmlFor="email"><TranslatedText text="Email" /></Label>
 								<Input id="email" type="email" placeholder="name@example.com" {...register("email")} className={cn("h-10", errors.email && "border-destructive focus-visible:ring-destructive")} />
 							</div>
 							<div className="space-y-2">
 								<div className="flex items-center justify-between">
-									<Label htmlFor="password">Password</Label>
+									<Label htmlFor="password"><TranslatedText text="Password" /></Label>
 									<Link href="/forgot-password" className="text-sm font-medium text-primary hover:underline">
-										Forgot password?
+										<TranslatedText text="Forgot password?" />
 									</Link>
 								</div>
 								<div className="relative">
@@ -106,7 +107,7 @@ export default function LoginPage() {
 								</div>
 							</div>
 							<Button type="submit" className="w-full h-10 font-semibold" disabled={isSubmitting}>
-								{isSubmitting ? "Signing in..." : "Sign In"}
+								{isSubmitting ? <TranslatedText text="Signing in..." /> : <TranslatedText text="Sign In" />}
 							</Button>
 						</form>
 					</motion.div>
@@ -114,7 +115,7 @@ export default function LoginPage() {
 					<motion.div variants={itemVariants} className="space-y-6">
 						<div className="relative">
 							<div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
-							<div className="relative flex justify-center text-xs uppercase"><span className="bg-slate-50 dark:bg-zinc-950 px-2 text-muted-foreground">Or continue with</span></div>
+							<div className="relative flex justify-center text-xs uppercase"><span className="bg-slate-50 dark:bg-zinc-950 px-2 text-muted-foreground"><TranslatedText text="Or continue with" /></span></div>
 						</div>
 						<div className="grid grid-cols-2 gap-4">
 							<Button variant="outline" type="button" className="h-10" onClick={() => signIn("google", { callbackUrl: "/" })}>
@@ -136,11 +137,11 @@ export default function LoginPage() {
 				<div className="absolute inset-0 bg-black/2" />
 				<div className="relative z-20 flex items-center justify-between text-lg font-medium">
 					<span className="font-bold text-2xl">AMU</span>
-					<Link href="/" className="text-sm hover:underline">Back to website &rarr;</Link>
+					<Link href="/" className="text-sm hover:underline"><TranslatedText text="Back to website" /> &rarr;</Link>
 				</div>
 				<div className="relative z-20 mt-auto">
 					<div className="space-y-2">
-						<h1 className="text-4xl font-bold tracking-tighter">Welcome Back<br />to Your Journey</h1>
+						<h1 className="text-4xl font-bold tracking-tighter"><TranslatedText text="Welcome Back to Your Journey" /></h1>
 						<div className="flex items-center gap-2 pt-4">
 							<span className="h-1.5 w-1.5 rounded-full bg-white/50"></span>
 							<span className="h-1.5 w-8 rounded-full bg-white"></span>

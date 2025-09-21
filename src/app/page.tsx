@@ -20,6 +20,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import Footer  from "@/components/Footer";
 import { useInView } from "react-intersection-observer";
+import { TranslatedText } from "@/components/TranslatedText";
 
 const manrope = Manrope({ subsets: ["latin"] });
 const inter = Inter({ subsets: ["latin"] });
@@ -74,13 +75,13 @@ const HeroSection = () => {
               variants={fadeIn}
               className={`${manrope.className} text-4xl md:text-6xl font-extrabold tracking-tight text-slate-900 dark:text-white`}
             >
-              Demystify Any Legal Document Instantly
+              <TranslatedText text="Demystify Any Legal Document Instantly" />
             </motion.h1>
             <motion.p
               variants={fadeIn}
               className={`${inter.className} mt-6 text-lg md:text-xl text-slate-600 dark:text-slate-300 max-w-prose`}
             >
-              Upload agreements, contracts, or terms of service and get clear, human-friendly summaries in seconds.
+              <TranslatedText text="Upload agreements, contracts, or terms of service and get clear, human-friendly summaries in seconds." />
             </motion.p>
             <motion.div variants={fadeIn} className="mt-8 flex flex-wrap gap-4">
               <Link
@@ -91,7 +92,7 @@ const HeroSection = () => {
                 )}
               >
                 <span className="absolute inset-0 bg-white/20 mix-blend-soft-light group-hover:animate-ripple" />
-                Upload Document
+                <TranslatedText text="Upload Document" />
                 <ArrowRight className="ml-2 h-5 w-5 transform group-hover:translate-x-1 transition-transform" />
               </Link>
               <Link
@@ -101,7 +102,7 @@ const HeroSection = () => {
                   "group relative border-2 border-indigo-500/50 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400/50 hover:text-white hover:bg-indigo-600/10 dark:hover:bg-indigo-400/10"
                 )}
               >
-                See Demo
+                <TranslatedText text="See Demo" />
               </Link>
             </motion.div>
           </motion.div>
@@ -209,10 +210,10 @@ const HowItWorksSection = () => {
           className="text-center mb-12"
         >
           <h2 className={`${manrope.className} text-3xl md:text-4xl font-extrabold text-slate-900 dark:text-white`}>
-            A simple, three-step process
+            <TranslatedText text="A simple, three-step process" />
           </h2>
           <p className={`${inter.className} mt-4 text-lg text-slate-600 dark:text-slate-300 max-w-2xl mx-auto`}>
-            Understand your legal documents without the complexity.
+            <TranslatedText text="Understand your legal documents without the complexity." />
           </p>
         </motion.div>
         <motion.div
@@ -231,8 +232,8 @@ const HowItWorksSection = () => {
               <div className="flex items-center justify-center h-16 w-16 mb-6 bg-indigo-100 dark:bg-indigo-900/50 rounded-full">
                 <step.icon className="h-8 w-8 text-indigo-600 dark:text-indigo-400" />
               </div>
-              <h3 className={`${manrope.className} text-xl font-bold text-slate-900 dark:text-white`}>{step.title}</h3>
-              <p className={`${inter.className} mt-2 text-slate-500 dark:text-slate-400`}>{step.description}</p>
+              <h3 className={`${manrope.className} text-xl font-bold text-slate-900 dark:text-white`}><TranslatedText text={step.title} /></h3>
+              <p className={`${inter.className} mt-2 text-slate-500 dark:text-slate-400`}><TranslatedText text={step.description} /></p>
             </motion.div>
           ))}
         </motion.div>
@@ -269,10 +270,10 @@ const InteractiveDemoBlock = () => {
           className="text-center mb-12"
         >
           <h2 className={`${manrope.className} text-3xl md:text-4xl font-extrabold text-slate-900 dark:text-white`}>
-            See it in Action
+            <TranslatedText text="See it in Action" />
           </h2>
           <p className={`${inter.className} mt-4 text-lg text-slate-600 dark:text-slate-300 max-w-2xl mx-auto`}>
-            Drag and drop a sample file or click to upload and watch the magic happen.
+            <TranslatedText text="Drag and drop a sample file or click to upload and watch the magic happen." />
           </p>
         </motion.div>
         <div className="max-w-4xl mx-auto grid md:grid-cols-2 gap-8 items-center">
@@ -289,13 +290,13 @@ const InteractiveDemoBlock = () => {
               ) : isComplete ? (
                 <p className="text-center text-green-600 dark:text-green-400">
                   <FileCheck className="h-12 w-12 mx-auto mb-4" />
-                  Analysis Complete!
+                  <TranslatedText text="Analysis Complete!" />
                 </p>
               ) : (
                 <div className="text-center text-slate-500 dark:text-slate-400">
                   <FileScan className="h-12 w-12 mx-auto mb-4" />
-                  <p className="font-semibold">Just Click</p>
-                  <p className="text-sm">And watch a small demo of our sample analysis</p>
+                  <p className="font-semibold"><TranslatedText text="Just Click" /></p>
+                  <p className="text-sm"><TranslatedText text="And watch a small demo of our sample analysis" /></p>
                 </div>
               )}
             </AnimatePresence>
@@ -309,25 +310,25 @@ const InteractiveDemoBlock = () => {
                 className="p-6 bg-white dark:bg-slate-800 rounded-lg shadow-lg"
               >
                 <h3 className={`${manrope.className} text-xl font-bold text-slate-900 dark:text-white`}>
-                  Summary of Your Document
+                  <TranslatedText text="Summary of Your Document" />
                 </h3>
                 <ul className="mt-4 space-y-3 text-slate-600 dark:text-slate-300">
                   <li className="flex items-start">
                     <ChevronRight className="h-5 w-5 mt-1 text-indigo-500 flex-shrink-0" />
                     <span className="ml-2">
-                      <strong>Termination Clause:</strong> The agreement can be terminated with 30 days written notice.
+                      <strong><TranslatedText text="Termination Clause:" /></strong> <TranslatedText text="The agreement can be terminated with 30 days written notice." />
                     </span>
                   </li>
                   <li className="flex items-start">
                     <ChevronRight className="h-5 w-5 mt-1 text-indigo-500 flex-shrink-0" />
                     <span className="ml-2">
-                      <strong>Liability:</strong> Liability is limited to the total contract value.
+                      <strong><TranslatedText text="Liability:" /></strong> <TranslatedText text="Liability is limited to the total contract value." />
                     </span>
                   </li>
                   <li className="flex items-start">
                     <ChevronRight className="h-5 w-5 mt-1 text-indigo-500 flex-shrink-0" />
                     <span className="ml-2">
-                      <strong>Payment Terms:</strong> Net 30 days from the date of invoice.
+                      <strong><TranslatedText text="Payment Terms:" /></strong> <TranslatedText text="Net 30 days from the date of invoice." />
                     </span>
                   </li>
                 </ul>
@@ -338,7 +339,7 @@ const InteractiveDemoBlock = () => {
                   }}
                   className="mt-6 w-full"
                 >
-                  Analyze Another
+                  <TranslatedText text="Analyze Another" />
                 </Button>
               </motion.div>
             )}
@@ -364,7 +365,7 @@ const ProcessingAnimation = () => (
         transition={{ repeat: Infinity, duration: 1.5, ease: [0.4, 0, 0.2, 1] as const }}
       />
     </div>
-    <p className="text-indigo-600 dark:text-indigo-400 font-semibold">Simplifying your contract...</p>
+    <p className="text-indigo-600 dark:text-indigo-400 font-semibold"><TranslatedText text="Simplifying your contract..." /></p>
   </motion.div>
 );
 
@@ -402,15 +403,15 @@ const TrustSection = () => {
           className="text-center mb-16"
         >
           <h2 className={`${manrope.className} text-3xl md:text-4xl font-extrabold text-slate-900 dark:text-white`}>
-            Trusted & Secure
+            <TranslatedText text="Trusted & Secure" />
           </h2>
           <p className={`${inter.className} mt-4 text-lg text-slate-600 dark:text-slate-300 max-w-2xl mx-auto`}>
-            Your privacy is our priority. We are committed to the highest standards of data security.
+            <TranslatedText text="Your privacy is our priority. We are committed to the highest standards of data security." />
           </p>
           <div className="mt-8 flex justify-center items-center gap-8 opacity-60">
             <Fingerprint className="h-10 w-10 text-slate-500" />
-            <p className="font-mono text-slate-500">AES-256 ENCRYPTION</p>
-            <p className="font-mono text-slate-500">SOC 2 COMPLIANT</p>
+            <p className="font-mono text-slate-500"><TranslatedText text="AES-256 ENCRYPTION" /></p>
+            <p className="font-mono text-slate-500"><TranslatedText text="SOC 2 COMPLIANT" /></p>
           </div>
         </motion.div>
 
@@ -424,10 +425,10 @@ const TrustSection = () => {
             {faqs.map((faq, index) => (
               <AccordionItem key={index} value={`item-${index}`}>
                 <AccordionTrigger className={`${inter.className} text-lg font-semibold`}>
-                  {faq.question}
+                  <TranslatedText text={faq.question} />
                 </AccordionTrigger>
                 <AccordionContent className={`${inter.className} text-base text-slate-600 dark:text-slate-300`}>
-                  {faq.answer}
+                  <TranslatedText text={faq.answer} />
                 </AccordionContent>
               </AccordionItem>
             ))}
@@ -453,13 +454,13 @@ const CtaFooter = () => {
           variants={fadeIn}
           className={`${manrope.className} text-4xl md:text-5xl font-extrabold dark:text-white`}
         >
-          Get Clarity, Not Complexity
+          <TranslatedText text="Get Clarity, Not Complexity" />
         </motion.h2>
         <motion.p
           variants={fadeIn}
           className={`${inter.className} mt-4 text-lg dark:text-indigo-200 text-indigo-800 max-w-2xl mx-auto`}
         >
-          Ready to transform your legal documents into simple, actionable insights? Get started now.
+          <TranslatedText text="Ready to transform your legal documents into simple, actionable insights? Get started now." />
         </motion.p>
         <motion.div variants={fadeIn} className="mt-8">
           <Link
@@ -469,7 +470,7 @@ const CtaFooter = () => {
               "group relative bg-white text-indigo-600 shadow-2xl hover:bg-slate-100 scale-105 animate-pulse hover:animate-none"
             )}
           >
-            Upload Document for Free
+            <TranslatedText text="Upload Document for Free" />
             <ArrowRight className="ml-2 h-5 w-5 transform group-hover:translate-x-1 transition-transform" />
           </Link>
         </motion.div>

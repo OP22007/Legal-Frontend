@@ -29,6 +29,9 @@ import { cn } from "@/lib/utils";
 import { Document as PrismaDocument, DocumentAnalysis, RiskFactor, KeyPoint, GlossaryTerm, RiskLevel } from "@/generated/prisma/client";
 import React from "react";
 import {toast} from 'sonner'
+import { TranslatedText } from "@/components/TranslatedText";
+import { useTranslate } from "@/hooks/useTranslate";
+import { Input } from "@/components/ui/input";
 
 // --- DYNAMIC IMPORTS ---
 const DocumentViewer = dynamic(() => import('./DocumentViewer'), {
@@ -128,7 +131,7 @@ const PulsingRiskGauge = ({ score, level }: { score: number; level: keyof typeof
     return (
         <SectionWrapper>
             <Card className="bg-white/60 dark:bg-black/20 backdrop-blur-lg border border-gray-200 dark:border-white/10">
-                <CardHeader><CardTitle className="flex items-center text-gray-800 dark:text-white"><Shield className="mr-2" /> Overall Risk</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="flex items-center text-gray-800 dark:text-white"><Shield className="mr-2" /> <TranslatedText text='Overall Risk'/></CardTitle></CardHeader>
                 <CardContent className="flex items-center justify-center p-6">
                     <motion.div 
                         className="relative w-52 h-52 flex items-center justify-center rounded-full"
@@ -151,20 +154,11 @@ const PulsingRiskGauge = ({ score, level }: { score: number; level: keyof typeof
     );
 };
 
-const KeyPointsSection = ({ keyPoints }: { keyPoints: KeyPoint[] }) => {
-    const containerVariants = { hidden: {}, show: { transition: { staggerChildren: 0.1 } } };
-    const itemVariants = { hidden: { opacity: 0, x: -20 }, show: { opacity: 1, x: 0 } };
-
-    // Group key points by category
-    const groupedPoints = useMemo(() => {
-        const groups: { [key: string]: KeyPoint[] } = {};
-        keyPoints.forEach(point => {
-            const category = point.category || 'OTHER';
-            if (!groups[category]) groups[category] = [];
-            groups[category].push(point);
-        });
-        return groups;
-    }, [keyPoints]);
+const TranslatedKeyPoint = ({ point }: { point: KeyPoint }) => {
+    const translatedTitle = useTranslate(point.title);
+    const translatedDescription = useTranslate(point.description);
+    const translatedExplanation = useTranslate(point.explanation || '');
+    const translatedPotentialImpact = useTranslate(point.potentialImpact || '');
 
     const getCategoryColor = (category: string) => {
         const colors: { [key: string]: string } = {
@@ -190,15 +184,76 @@ const KeyPointsSection = ({ keyPoints }: { keyPoints: KeyPoint[] }) => {
         return '⭐⭐';
     };
 
+    return (
+        <motion.div variants={{ hidden: { opacity: 0, x: -20 }, show: { opacity: 1, x: 0 } }}>
+            <AccordionItem value={point.id} className="border-b border-gray-200 dark:border-white/10">
+                <AccordionTrigger className="hover:no-underline">
+                    <div className="flex items-center justify-between w-full mr-4">
+                        <div className="flex items-center gap-3">
+                            <span className={`px-2 py-1 text-xs font-medium rounded-full border ${getCategoryColor(point.category || 'OTHER')}`}>
+                                {point.category?.replace(/_/g, ' ') || 'OTHER'}
+                            </span>
+                            <span className="font-medium text-left">{translatedTitle}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                            <span>{getImportanceIcon(point.importance)}</span>
+                            <span className="text-xs">#{point.importance}</span>
+                        </div>
+                    </div>
+                </AccordionTrigger>
+                <AccordionContent className="text-gray-600 dark:text-gray-300">
+                    <div className="space-y-3">
+                        <p className="text-sm leading-relaxed">{translatedDescription}</p>
+
+                        {point.explanation && (
+                            <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border-l-4 border-blue-400">
+                                <h4 className="font-semibold text-blue-800 dark:text-blue-300 text-sm mb-1"><TranslatedText text='Explanation'/></h4>
+                                <p className="text-blue-700 dark:text-blue-200 text-sm">{translatedExplanation}</p>
+                            </div>
+                        )}
+
+                        {point.potentialImpact && (
+                            <div className="bg-amber-50 dark:bg-amber-900/20 p-3 rounded-lg border-l-4 border-amber-400">
+                                <h4 className="font-semibold text-amber-800 dark:text-amber-300 text-sm mb-1"><TranslatedText text='Potential Impact'/></h4>
+                                <p className="text-amber-700 dark:text-amber-200 text-sm">{translatedPotentialImpact}</p>
+                            </div>
+                        )}
+
+                        <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 pt-2 border-t border-gray-200 dark:border-white/10">
+                            <span><TranslatedText text='Importance'/>: {point.importance}/5</span>
+                            {point.pageNumber && <span><TranslatedText text='Page'/> {point.pageNumber}</span>}
+                        </div>
+                    </div>
+                </AccordionContent>
+            </AccordionItem>
+        </motion.div>
+    )
+}
+
+const KeyPointsSection = ({ keyPoints }: { keyPoints: KeyPoint[] }) => {
+    const containerVariants = { hidden: {}, show: { transition: { staggerChildren: 0.1 } } };
+
+    // Group key points by category
+    const groupedPoints = useMemo(() => {
+        const groups: { [key: string]: KeyPoint[] } = {};
+        keyPoints.forEach(point => {
+            const category = point.category || 'OTHER';
+            if (!groups[category]) groups[category] = [];
+            groups[category].push(point);
+        });
+        return groups;
+    }, [keyPoints]);
+
+
     if (keyPoints.length === 0) {
         return (
             <SectionWrapper>
                 <Card className="bg-white/60 dark:bg-black/20 backdrop-blur-lg border border-gray-200 dark:border-white/10">
-                    <CardHeader><CardTitle className="flex items-center text-gray-800 dark:text-white"><BookOpen className="mr-2"/> Key Points</CardTitle></CardHeader>
+                    <CardHeader><CardTitle className="flex items-center text-gray-800 dark:text-white"><BookOpen className="mr-2"/> <TranslatedText text='Key Points'/></CardTitle></CardHeader>
                     <CardContent>
                         <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                             <BookOpen className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                            <p>No key points extracted from this document.</p>
+                            <p><TranslatedText text='No key points extracted from this document.'/></p>
                         </div>
                     </CardContent>
                 </Card>
@@ -211,7 +266,7 @@ const KeyPointsSection = ({ keyPoints }: { keyPoints: KeyPoint[] }) => {
             <Card className="bg-white/60 dark:bg-black/20 backdrop-blur-lg border border-gray-200 dark:border-white/10">
                 <CardHeader>
                     <CardTitle className="flex items-center text-gray-800 dark:text-white">
-                        <BookOpen className="mr-2"/> Key Points ({keyPoints.length})
+                        <BookOpen className="mr-2"/> <TranslatedText text='Key Points'/> ({keyPoints.length})
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -223,48 +278,7 @@ const KeyPointsSection = ({ keyPoints }: { keyPoints: KeyPoint[] }) => {
                                 </h3>
                                 <Accordion type="single" collapsible className="w-full text-gray-800 dark:text-white">
                                     {points.map(point => (
-                                        <motion.div key={point.id} variants={itemVariants}>
-                                            <AccordionItem value={point.id} className="border-b border-gray-200 dark:border-white/10">
-                                                <AccordionTrigger className="hover:no-underline">
-                                                    <div className="flex items-center justify-between w-full mr-4">
-                                                        <div className="flex items-center gap-3">
-                                                            <span className={`px-2 py-1 text-xs font-medium rounded-full border ${getCategoryColor(point.category || 'OTHER')}`}>
-                                                                {point.category?.replace(/_/g, ' ') || 'OTHER'}
-                                                            </span>
-                                                            <span className="font-medium text-left">{point.title}</span>
-                                                        </div>
-                                                        <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-                                                            <span>{getImportanceIcon(point.importance)}</span>
-                                                            <span className="text-xs">#{point.importance}</span>
-                                                        </div>
-                                                    </div>
-                                                </AccordionTrigger>
-                                                <AccordionContent className="text-gray-600 dark:text-gray-300">
-                                                    <div className="space-y-3">
-                                                        <p className="text-sm leading-relaxed">{point.description}</p>
-
-                                                        {point.explanation && (
-                                                            <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border-l-4 border-blue-400">
-                                                                <h4 className="font-semibold text-blue-800 dark:text-blue-300 text-sm mb-1">Explanation</h4>
-                                                                <p className="text-blue-700 dark:text-blue-200 text-sm">{point.explanation}</p>
-                                                            </div>
-                                                        )}
-
-                                                        {point.potentialImpact && (
-                                                            <div className="bg-amber-50 dark:bg-amber-900/20 p-3 rounded-lg border-l-4 border-amber-400">
-                                                                <h4 className="font-semibold text-amber-800 dark:text-amber-300 text-sm mb-1">Potential Impact</h4>
-                                                                <p className="text-amber-700 dark:text-amber-200 text-sm">{point.potentialImpact}</p>
-                                                            </div>
-                                                        )}
-
-                                                        <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 pt-2 border-t border-gray-200 dark:border-white/10">
-                                                            <span>Importance: {point.importance}/5</span>
-                                                            {point.pageNumber && <span>Page {point.pageNumber}</span>}
-                                                        </div>
-                                                    </div>
-                                                </AccordionContent>
-                                            </AccordionItem>
-                                        </motion.div>
+										<TranslatedKeyPoint key={point.id} point={point} />
                                     ))}
                                 </Accordion>
                             </div>
@@ -280,37 +294,50 @@ const Eli5Summary = ({ summary }: { summary: string }) => {
     const ref = useRef(null);
     const isInView = useInView(ref, { once: true, amount: 0.5 });
     const [animatedSummary, setAnimatedSummary] = useState("");
+    const translatedSummary = useTranslate(summary);
+    const [isTranslated, setIsTranslated] = useState(false);
 
     useEffect(() => {
-        if (isInView && summary) {
+        if (translatedSummary && translatedSummary !== summary) {
+            setIsTranslated(true);
+        }
+    }, [translatedSummary, summary]);
+
+    useEffect(() => {
+        if (isInView && isTranslated) {
             let i = 0;
             setAnimatedSummary("");
             const intervalId = setInterval(() => {
-                if (i < summary.length) {
-                    setAnimatedSummary(prev => prev + summary.charAt(i));
+                if (i < translatedSummary.length) {
+                    setAnimatedSummary(prev => prev + translatedSummary.charAt(i));
                     i++;
-                } else { clearInterval(intervalId); }
+                } else {
+                    clearInterval(intervalId);
+                }
             }, 15);
             return () => clearInterval(intervalId);
         }
-    }, [isInView, summary]);
+    }, [isInView, isTranslated, translatedSummary]);
 
     return (
         <SectionWrapper>
             <Card className="bg-white/60 dark:bg-black/20 backdrop-blur-lg border border-gray-200 dark:border-white/10">
-                <CardHeader><CardTitle className="flex items-center text-gray-800 dark:text-white"><Lightbulb className="mr-2"/> ELI5 Summary</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="flex items-center text-gray-800 dark:text-white"><Lightbulb className="mr-2"/><TranslatedText text='ELI5 Summary'/></CardTitle></CardHeader>
                 <CardContent ref={ref} className="text-gray-700 dark:text-gray-200 leading-relaxed min-h-[12rem] font-mono">
-                    {animatedSummary}
-                    {isInView && animatedSummary.length === summary.length ? null : <span className="inline-block w-2 h-5 bg-gray-800 dark:bg-white animate-pulse ml-1" />}
+                    {isTranslated ? animatedSummary : summary}
+                    {isInView && animatedSummary.length === translatedSummary.length ? null : <span className="inline-block w-2 h-5 bg-gray-800 dark:bg-white animate-pulse ml-1" />}
                 </CardContent>
             </Card>
         </SectionWrapper>
     );
 };
 
-const RiskFactorCard = ({ factor, onSwipe, isTop }: { factor: RiskFactor, onSwipe: () => void, isTop: boolean }) => {
+const TranslatedRiskFactorCard = ({ factor, onSwipe, isTop }: { factor: RiskFactor, onSwipe: () => void, isTop: boolean }) => {
     const x = useMotionValue(0);
     const rotate = useTransform(x, [-250, 250], [-25, 25]);
+	const translatedTitle = useTranslate(factor.title);
+    const translatedDescription = useTranslate(factor.description);
+    const translatedMitigation = useTranslate(factor.mitigation ?? '');
 
     return (
         <motion.div
@@ -324,12 +351,12 @@ const RiskFactorCard = ({ factor, onSwipe, isTop }: { factor: RiskFactor, onSwip
             transition={{ duration: 0.3, ease: "easeOut" }}
         >
             <div>
-                <h3 className="font-bold text-lg text-gray-900 dark:text-white">{factor.title}</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">{factor.description}</p>
+                <h3 className="font-bold text-lg text-gray-900 dark:text-white">{translatedTitle}</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">{translatedDescription}</p>
             </div>
             <div className="mt-4 p-3 bg-sky-100 dark:bg-sky-900/50 border-l-4 border-sky-500 dark:border-sky-400 rounded-r-md">
-                <h4 className="font-semibold text-sky-800 dark:text-sky-300">Suggested Action</h4>
-                <p className="text-sm text-sky-700 dark:text-sky-200/80 mt-1">{factor.mitigation}</p>
+                <h4 className="font-semibold text-sky-800 dark:text-sky-300"><TranslatedText text='Suggested Action'/></h4>
+                <p className="text-sm text-sky-700 dark:text-sky-200/80 mt-1">{translatedMitigation}</p>
             </div>
         </motion.div>
     );
@@ -369,14 +396,14 @@ const RiskFactorDeck = ({ factors, level }: { factors: RiskFactor[], level: keyo
                                     animate={{ scale: 1 - (cards.length - 1 - index) * 0.05, top: (cards.length - 1 - index) * 10 }}
                                     transition={{ duration: 0.3, ease: "easeOut" }}
                                 >
-                                    <RiskFactorCard factor={factor} onSwipe={handleSwipe} isTop={isTop} />
+                                    <TranslatedRiskFactorCard factor={factor} onSwipe={handleSwipe} isTop={isTop} />
                                 </motion.div>
                             );
                         })
                     ) : (
                         <motion.div initial={{opacity: 0, scale: 0.8}} animate={{opacity: 1, scale: 1}} className="flex flex-col items-center justify-center h-full text-center text-green-800 dark:text-green-300">
                             <Sparkles className="w-16 h-16 mb-4" />
-                            <p className="text-xl font-semibold">All clear!</p>
+                            <p className="text-xl font-semibold"><TranslatedText text='All clear!'/></p>
                         </motion.div>
                     )}
                 </AnimatePresence>
@@ -392,9 +419,9 @@ const ResponsiveRiskFactors = ({ groupedRisks }: { groupedRisks: { [key in 'HIGH
         return (
             <Tabs defaultValue="HIGH" className="w-full">
                 <TabsList className="grid w-full grid-cols-3 bg-gray-200 dark:bg-gray-800/50 border border-gray-300 dark:border-white/10">
-                    <TabsTrigger value="HIGH">High ({groupedRisks.HIGH.length})</TabsTrigger>
-                    <TabsTrigger value="MEDIUM">Medium ({groupedRisks.MEDIUM.length})</TabsTrigger>
-                    <TabsTrigger value="LOW">Low ({groupedRisks.LOW.length})</TabsTrigger>
+                    <TabsTrigger value="HIGH"><TranslatedText text='High'/> ({groupedRisks.HIGH.length})</TabsTrigger>
+                    <TabsTrigger value="MEDIUM"><TranslatedText text='Medium'/> ({groupedRisks.MEDIUM.length})</TabsTrigger>
+                    <TabsTrigger value="LOW"><TranslatedText text='Low'/> ({groupedRisks.LOW.length})</TabsTrigger>
                 </TabsList>
                 <TabsContent value="HIGH" className="py-6"><RiskFactorDeck factors={groupedRisks.HIGH} level="HIGH" /></TabsContent>
                 <TabsContent value="MEDIUM" className="py-6"><RiskFactorDeck factors={groupedRisks.MEDIUM} level="MEDIUM" /></TabsContent>
@@ -412,10 +439,124 @@ const ResponsiveRiskFactors = ({ groupedRisks }: { groupedRisks: { [key in 'HIGH
     );
 }
 
+const TranslatedGlossaryTerm = ({ term }: { term: GlossaryTerm }) => {
+    const translatedTerm = useTranslate(term.term);
+    const translatedDefinition = useTranslate(term.definition);
+
+    return (
+        <motion.div
+            variants={{
+                hidden: { opacity: 0, y: 50, scale: 0.9 },
+                show: { opacity: 1, y: 0, scale: 1 },
+            }}
+            whileHover={{ y: -5, boxShadow: "0px 15px 30px rgba(0, 0, 0, 0.1)" }}
+            transition={{ type: "spring", stiffness: 300 }}
+        >
+            <Card className="h-full bg-gradient-to-br from-white/80 to-white/70 dark:from-zinc-900/80 dark:to-zinc-900/70 backdrop-blur-lg border-gray-200/50 dark:border-white/10 shadow-lg">
+                <CardHeader>
+                    <CardTitle className="text-lg font-bold text-gray-800 dark:text-white">{translatedTerm}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-gray-600 dark:text-gray-300 leading-relaxed">{translatedDefinition}</p>
+                </CardContent>
+            </Card>
+        </motion.div>
+    )
+}
+
+const GlossarySection = ({ glossaryTerms }: { glossaryTerms: GlossaryTerm[] }) => {
+    const [searchTerm, setSearchTerm] = useState('');
+    const t_searchTerm = useTranslate('Search terms...');
+    const filteredTerms = useMemo(() => {
+        return glossaryTerms.filter(term =>
+            term.term.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+    }, [glossaryTerms, searchTerm]);
+
+    const containerVariants = {
+        hidden: { opacity: 0 },
+        show: {
+            opacity: 1,
+            transition: {
+                staggerChildren: 0.15,
+                delayChildren: 0.2,
+            },
+        },
+    };
+
+    return (
+        <SectionWrapper>
+            <div className="p-6 md:p-8 rounded-2xl bg-white/50 dark:bg-black/20 backdrop-blur-2xl border border-gray-200/50 dark:border-white/10 shadow-2xl">
+                <div className="flex justify-between items-center mb-8">
+                    <h2 className="text-3xl font-bold text-gray-800 dark:text-white flex items-center">
+                        <BookOpen className="mr-3 text-blue-500" />
+                        <TranslatedText text="Glossary" />
+                    </h2>
+                    <div className="w-full max-w-sm">
+                        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+                            <Input
+                                placeholder={t_searchTerm}
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="bg-white/80 dark:bg-zinc-800/80 border-gray-300 dark:border-zinc-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent rounded-full px-5 py-3 shadow-inner"
+                            />
+                        </motion.div>
+                    </div>
+                </div>
+
+                <AnimatePresence>
+                    {filteredTerms.length > 0 ? (
+                        <motion.div
+                            className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
+                            variants={containerVariants}
+                            initial="hidden"
+                            animate="show"
+                            exit={{ opacity: 0 }}
+                        >
+                            {filteredTerms.map(term => (
+                                <TranslatedGlossaryTerm key={term.id} term={term} />
+                            ))}
+                        </motion.div>
+                    ) : (
+                        <motion.div
+                            initial={{ opacity: 0, y: 50 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -50 }}
+                            className="flex flex-col items-center justify-center text-center py-16"
+                        >
+                            <motion.div
+                                animate={{ rotate: [0, 15, -15, 0] }}
+                                transition={{ duration: 1, repeat: Infinity, ease: "easeInOut" }}
+                            >
+                                <Sparkles className="w-24 h-24 text-gray-400 dark:text-gray-600 mb-6" />
+                            </motion.div>
+                            <h3 className="text-2xl font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                <TranslatedText text="No Matching Terms" />
+                            </h3>
+                            <p className="text-gray-500 dark:text-gray-400">
+                                <TranslatedText text="Try a different search query." />
+                            </p>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </div>
+        </SectionWrapper>
+    );
+};
+
+
+
 // --- MAIN CLIENT COMPONENT ---
 export const AnalysisClient = ({ document }: { document: DocumentWithAnalysis }) => {
     const { resolvedTheme } = useTheme();
     const [isScrolled, setIsScrolled] = useState(false);
+    const t_downloadingPdf = useTranslate('Downloading PDF...');
+    const t_sharedSuccessfully = useTranslate('Shared successfully!');
+    const t_failedToShare = useTranslate('Failed to share.');
+    const t_webShareApiNotSupported = useTranslate('Web Share API not supported in this browser.');
+    const t_linkCopied = useTranslate('Link copied to clipboard!');
+    const t_failedToCopyLink = useTranslate('Failed to copy link.');
+    const t_legalDocumentAnalysis = useTranslate('Legal Document Analysis');
 
     const handlePrint = useCallback(() => window.print(), []);
 
@@ -443,33 +584,33 @@ export const AnalysisClient = ({ document }: { document: DocumentWithAnalysis })
         window.document.body.appendChild(link);
         link.click();
         window.document.body.removeChild(link);
-        toast.success('Downloading PDF...');
+        toast.success(t_downloadingPdf);
     };
 
     const handleShare = async () => {
         if (navigator.share) {
             try {
                 await navigator.share({
-                    title: `Legal Document Analysis: ${document.originalFileName}`,
+                    title: `${t_legalDocumentAnalysis}: ${document.originalFileName}`,
                     url: window.location.href,
                 });
-                toast.success('Shared successfully!');
+                toast.success(t_sharedSuccessfully);
             } catch (error) {
                 console.error('Error sharing:', error);
-                toast.error('Failed to share.');
+                toast.error(t_failedToShare);
             }
         } else {
-            toast.error('Web Share API not supported in this browser.');
+            toast.error(t_webShareApiNotSupported);
         }
     };
 
     const handleCopyLink = async () => {
         try {
             await navigator.clipboard.writeText(window.location.href);
-            toast.success('Link copied to clipboard!');
+            toast.success(t_linkCopied);
         } catch (error) {
             console.error('Error copying link:', error);
-            toast.error('Failed to copy link.');
+            toast.error(t_failedToCopyLink);
         }
     };
 
@@ -479,17 +620,17 @@ export const AnalysisClient = ({ document }: { document: DocumentWithAnalysis })
             <header className={cn("sticky top-0 z-50 transition-all duration-300", isScrolled ? "py-2 bg-white/80 dark:bg-black/30 backdrop-blur-xl border-b border-gray-200 dark:border-white/10" : "py-6")}>
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center">
                     <div>
-                        <h1 className="text-2xl font-bold tracking-tight flex items-center text-gray-900 dark:text-white"><FileText className="mr-3" /> Analysis Report</h1>
+                        <h1 className="text-2xl font-bold tracking-tight flex items-center text-gray-900 dark:text-white"><FileText className="mr-3" /> <TranslatedText text='Analysis Report'/></h1>
                         <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">{document.originalFileName}</p>
                     </div>
                     <div className="flex items-center gap-2">
-                        <Button variant="ghost" onClick={handlePrint}><Printer className="mr-2 h-4 w-4" /> Print</Button>
+                        <Button variant="ghost" onClick={handlePrint}><Printer className="mr-2 h-4 w-4" /> <TranslatedText text='Print'/></Button>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreVertical /></Button></DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={handleDownloadPdf}><Download className="mr-2 h-4 w-4"/>Download PDF</DropdownMenuItem>
-                                <DropdownMenuItem onClick={handleShare}><Share2 className="mr-2 h-4 w-4"/>Share</DropdownMenuItem>
-                                <DropdownMenuItem onClick={handleCopyLink}><LinkIcon className="mr-2 h-4 w-4"/>Copy Link</DropdownMenuItem>
+                                <DropdownMenuItem onClick={handleDownloadPdf}><Download className="mr-2 h-4 w-4"/><TranslatedText text='Download PDF'/></DropdownMenuItem>
+                                <DropdownMenuItem onClick={handleShare}><Share2 className="mr-2 h-4 w-4"/><TranslatedText text='Share'/></DropdownMenuItem>
+                                <DropdownMenuItem onClick={handleCopyLink}><LinkIcon className="mr-2 h-4 w-4"/><TranslatedText text='Copy Link'/></DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </div>
@@ -498,9 +639,10 @@ export const AnalysisClient = ({ document }: { document: DocumentWithAnalysis })
 
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 <Tabs defaultValue="report" className="w-full">
-                    <TabsList className="grid w-full grid-cols-2 bg-gray-200 dark:bg-gray-800/50 border border-gray-300 dark:border-white/10">
-                        <TabsTrigger value="report">Interactive Report</TabsTrigger>
-                        <TabsTrigger value="document">Document Viewer</TabsTrigger>
+                    <TabsList className="grid w-full grid-cols-3 bg-gray-200 dark:bg-gray-800/50 border border-gray-300 dark:border-white/10">
+                        <TabsTrigger value="report"><TranslatedText text='Interactive Report'/></TabsTrigger>
+                        <TabsTrigger value="document"><TranslatedText text='Document Viewer'/></TabsTrigger>
+						<TabsTrigger value="glossary"><TranslatedText text='Glossary'/></TabsTrigger>
                     </TabsList>
                     <TabsContent value="report" className="py-6">
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
@@ -513,12 +655,15 @@ export const AnalysisClient = ({ document }: { document: DocumentWithAnalysis })
                         </div>
                         <KeyPointsSection keyPoints={document.keyPoints} />
                         <div className="mt-12">
-                            <h2 className="text-3xl font-bold text-center mb-8 text-gray-900 dark:text-white">Risk Factor Analysis</h2>
+                            <h2 className="text-3xl font-bold text-center mb-8 text-gray-900 dark:text-white"><TranslatedText text='Risk Factor Analysis'/></h2>
                             <ResponsiveRiskFactors groupedRisks={groupedRisks} />
                         </div>
                     </TabsContent>
                     <TabsContent value="document" className="py-6">
                         <DocumentViewer storageUrl={document.storageUrl} glossaryTerms={document.glossaryTerms.map(term => ({ ...term, simplifiedDefinition: term.simplifiedDefinition ?? undefined }))} />
+                    </TabsContent>
+					<TabsContent value="glossary" className="py-6">
+                        <GlossarySection glossaryTerms={document.glossaryTerms} />
                     </TabsContent>
                 </Tabs>
             </main>

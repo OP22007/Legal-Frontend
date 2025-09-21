@@ -5,8 +5,10 @@ import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { useSession, signOut } from "next-auth/react";
 import { LogOut, User as UserIcon, Settings } from "lucide-react";
+import { TranslatedLink } from "@/components/TranslatedLink";
 
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { LanguageToggle } from "@/components/ui/language-toggle";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
 	DropdownMenu,
@@ -54,12 +56,11 @@ export default function Navbar() {
 				<ul className="hidden md:flex items-center gap-2">
 					{navLinks.map((link) => (
 						<li key={link.href} className="relative">
-							<Link
+							<TranslatedLink
 								href={link.href}
+								label={link.label}
 								className={`px-4 py-2 text-sm font-medium rounded-md transition-colors duration-300 ${pathname === link.href ? "text-primary" : "text-muted-foreground hover:text-primary"}`}
-							>
-								{link.label}
-							</Link>
+							/>
 							{pathname === link.href && (
 								<motion.span
 									layoutId="underline"
@@ -73,6 +74,7 @@ export default function Navbar() {
 
 				<div className="flex items-center gap-4">
 					<ThemeToggle />
+					<LanguageToggle />
 
 					{status === "loading" && (
 						<div className="flex items-center gap-2">

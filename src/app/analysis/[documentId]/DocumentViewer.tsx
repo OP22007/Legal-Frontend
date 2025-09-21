@@ -18,6 +18,7 @@ import {
   Maximize2, ChevronLeft, ChevronRight, X, Loader2
 } from "lucide-react";
 import React from "react";
+import { useTranslate } from "@/hooks/useTranslate";
 
 if (typeof window !== 'undefined' && !pdfjs.GlobalWorkerOptions.workerSrc) {
   pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
@@ -28,6 +29,70 @@ interface GlossaryTerm {
   term: string;
   definition: string;
   simplifiedDefinition?: string;
+}
+
+const TranslatedText = ({ text, glossaryTerms }: { text: string, glossaryTerms: GlossaryTerm[] }) => {
+	const translatedText = useTranslate(text);
+
+	const textRenderer = useCallback(() => {
+		if (!translatedText || !glossaryTerms?.length) return translatedText;
+		const allMatches: { term: GlossaryTerm; index: number }[] = [];
+		for (const term of glossaryTerms) {
+			let startIndex = 0;
+			while (startIndex < translatedText.length) {
+				const index = translatedText.toLowerCase().indexOf(term.term.toLowerCase(), startIndex);
+				if (index === -1) break;
+				allMatches.push({ term, index });
+				startIndex = index + term.term.length;
+			}
+		}
+		if (allMatches.length === 0) return translatedText;
+		allMatches.sort((a, b) => a.index - b.index);
+		const uniqueMatches: { term: GlossaryTerm; index: number; endIndex: number }[] = [];
+		let lastEndIndex = -1;
+		for (const match of allMatches) {
+			const endIndex = match.index + match.term.term.length;
+			if (match.index >= lastEndIndex) {
+				uniqueMatches.push({ ...match, endIndex });
+				lastEndIndex = endIndex;
+			}
+		}
+		const result: (string | React.JSX.Element)[] = [];
+		let lastIndex = 0;
+		for (const match of uniqueMatches) {
+			if (match.index > lastIndex) {
+				result.push(translatedText.substring(lastIndex, match.index));
+			}
+			const matchedText = translatedText.substring(match.index, match.endIndex);
+			result.push(
+				<Popover key={`${match.term.id}-${match.index}`}>
+          <PopoverTrigger asChild>
+            <mark className="bg-yellow-300/70 hover:bg-yellow-400/90 transition-colors duration-200 cursor-pointer rounded-md px-1 shadow-sm">
+              {matchedText}
+            </mark>
+          </PopoverTrigger>
+          <PopoverContent className="w-80 shadow-xl">
+            <div className="space-y-2">
+              <h4 className="font-semibold text-lg flex items-center">
+                <Book className="mr-2 h-5 w-5 text-blue-500" />
+                {match.term.term}
+              </h4>
+              <p className="text-sm text-gray-700 dark:text-gray-300">
+                {match.term.simplifiedDefinition || match.term.definition}
+              </p>
+            </div>
+          </PopoverContent>
+        </Popover>
+			);
+			lastIndex = match.endIndex;
+		}
+		if (lastIndex < translatedText.length) {
+			result.push(translatedText.substring(lastIndex));
+		}
+		return <>{result.map((item, i) => <Fragment key={i}>{item}</Fragment>)}</>;
+	}, [translatedText, glossaryTerms]);
+
+	return textRenderer();
 }
 
 const ViewerToolbar = ({
@@ -194,63 +259,8 @@ const DocumentViewer = ({ storageUrl, glossaryTerms = [] }: {
   }, [goToNextPage, goToPrevPage, isFullscreen]);
   
   const textRenderer = useCallback((textItem: any) => {
-    if (!textItem?.str || !glossaryTerms?.length) return textItem.str;
-    const text = textItem.str;
-    const allMatches: { term: GlossaryTerm; index: number }[] = [];
-    for (const term of glossaryTerms) {
-      let startIndex = 0;
-      while (startIndex < text.length) {
-        const index = text.toLowerCase().indexOf(term.term.toLowerCase(), startIndex);
-        if (index === -1) break;
-        allMatches.push({ term, index });
-        startIndex = index + term.term.length;
-      }
-    }
-    if (allMatches.length === 0) return text;
-    allMatches.sort((a, b) => a.index - b.index);
-    const uniqueMatches: { term: GlossaryTerm; index: number; endIndex: number }[] = [];
-    let lastEndIndex = -1;
-    for (const match of allMatches) {
-      const endIndex = match.index + match.term.term.length;
-      if (match.index >= lastEndIndex) {
-        uniqueMatches.push({ ...match, endIndex });
-        lastEndIndex = endIndex;
-      }
-    }
-    const result: (string | React.JSX.Element)[] = [];
-    let lastIndex = 0;
-    for (const match of uniqueMatches) {
-      if (match.index > lastIndex) {
-        result.push(text.substring(lastIndex, match.index));
-      }
-      const matchedText = text.substring(match.index, match.endIndex);
-      result.push(
-        <Popover key={`${match.term.id}-${match.index}`}>
-          <PopoverTrigger asChild>
-            <mark className="bg-yellow-300/70 hover:bg-yellow-400/90 transition-colors duration-200 cursor-pointer rounded-md px-1 shadow-sm">
-              {matchedText}
-            </mark>
-          </PopoverTrigger>
-          <PopoverContent className="w-80 shadow-xl">
-            <div className="space-y-2">
-              <h4 className="font-semibold text-lg flex items-center">
-                <Book className="mr-2 h-5 w-5 text-blue-500" />
-                {match.term.term}
-              </h4>
-              <p className="text-sm text-gray-700 dark:text-gray-300">
-                {match.term.simplifiedDefinition || match.term.definition}
-              </p>
-            </div>
-          </PopoverContent>
-        </Popover>
-      );
-      lastIndex = match.endIndex;
-    }
-    if (lastIndex < text.length) {
-      result.push(text.substring(lastIndex));
-    }
-    return <>{result.map((item, i) => <Fragment key={i}>{item}</Fragment>)}</>;
-  }, [glossaryTerms]);
+    return textItem.str; // Return the raw text for now
+  }, []);
 
   const PageLoadingComponent = useMemo(() => <Skeleton className="w-full h-96" />, []);
   const DocumentLoadingComponent = useMemo(() => (

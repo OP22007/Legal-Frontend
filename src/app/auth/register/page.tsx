@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
+import { TranslatedText } from "@/components/TranslatedText";
 
 const registerSchema = z.object({
 	acceptTerms: z.boolean().refine(val => val === true, {
@@ -158,15 +159,14 @@ export default function RegisterPage() {
 				<div className="relative z-20 flex items-center justify-between text-lg font-medium">
 					<span className="font-bold text-2xl">AMU</span>
 					<Link href="/" className="text-sm hover:underline">
-						Back to website &rarr;
+						<TranslatedText text="Back to website" /> &rarr;
 					</Link>
 				</div>
 				<div className="relative z-20 mt-auto">
 					<div className="space-y-2">
 						<h1 className="text-4xl font-bold tracking-tighter">
-							Capturing Moments,
-							<br />
-							Creating Memories
+							<TranslatedText text="Capturing Moments," /><br />
+							<TranslatedText text="Creating Memories" />
 						</h1>
 						<div className="flex items-center gap-2 pt-4">
 							<span className="h-1.5 w-1.5 rounded-full bg-white/50"></span>
@@ -188,15 +188,15 @@ export default function RegisterPage() {
 						className="space-y-2 text-center lg:text-left"
 					>
 						<h2 className="text-3xl font-bold tracking-tight text-foreground">
-							Create an account
+							<TranslatedText text="Create an account" />
 						</h2>
 						<p className="text-muted-foreground">
-							Already have an account?{" "}
+							<TranslatedText text="Already have an account?" />{" "}
 							<Link
 								href="/auth/login"
 								className="font-medium text-primary hover:underline"
 							>
-								Log in
+								<TranslatedText text="Log in" />
 							</Link>
 						</p>
 					</motion.div>
@@ -204,7 +204,7 @@ export default function RegisterPage() {
 						<form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
 							<div className="grid grid-cols-2 gap-4">
 								<div className="space-y-2">
-									<Label htmlFor="firstName">First name</Label>
+									<Label htmlFor="firstName"><TranslatedText text="First name" /></Label>
 									<Input
 										id="firstName"
 										{...register("firstName")}
@@ -221,7 +221,7 @@ export default function RegisterPage() {
 									)}
 								</div>
 								<div className="space-y-2">
-									<Label htmlFor="lastName">Last name</Label>
+									<Label htmlFor="lastName"><TranslatedText text="Last name" /></Label>
 									<Input
 										id="lastName"
 										{...register("lastName")}
@@ -239,7 +239,7 @@ export default function RegisterPage() {
 								</div>
 							</div>
 							<div className="space-y-2">
-								<Label htmlFor="persona">Persona</Label>
+								<Label htmlFor="persona"><TranslatedText text="Persona" /></Label>
 								<div className="relative">
 									<input type="hidden" {...register("persona")} />
 									<button
@@ -251,7 +251,7 @@ export default function RegisterPage() {
 										)}
 										onClick={() => setPersonaOpen((open) => !open)}
 									>
-										{personaOptions[currentPersona as keyof typeof personaOptions]}
+										<TranslatedText text={personaOptions[currentPersona as keyof typeof personaOptions]} />
 										<span className="ml-2">▼</span>
 									</button>
 									<AnimatePresence>
@@ -276,7 +276,7 @@ export default function RegisterPage() {
 															setPersonaOpen(false);
 														}}
 													>
-														{label}
+														<TranslatedText text={label} />
 													</li>
 												))}
 											</motion.ul>
@@ -290,7 +290,7 @@ export default function RegisterPage() {
 								)}
 							</div>
 							<div className="space-y-2">
-								<Label htmlFor="preferredLanguage">Preferred Language</Label>
+								<Label htmlFor="preferredLanguage"><TranslatedText text="Preferred Language" /></Label>
 								<div className="relative">
 									<input type="hidden" {...register("preferredLanguage")} />
 									<button
@@ -330,7 +330,7 @@ export default function RegisterPage() {
 																setLanguageOpen(false);
 															}}
 														>
-															{label}
+															<TranslatedText text={label} />
 														</li>
 													)
 												)}
@@ -345,7 +345,7 @@ export default function RegisterPage() {
 								)}
 							</div>
 							<div className="space-y-2">
-								<Label htmlFor="email">Email</Label>
+								<Label htmlFor="email"><TranslatedText text="Email" /></Label>
 								<Input
 									id="email"
 									type="email"
@@ -363,7 +363,7 @@ export default function RegisterPage() {
 								)}
 							</div>
 							<div className="space-y-2">
-								<Label htmlFor="password">Password</Label>
+								<Label htmlFor="password"><TranslatedText text="Password" /></Label>
 								<div className="relative">
 									<Input
 										id="password"
@@ -409,12 +409,12 @@ export default function RegisterPage() {
 												htmlFor="acceptTerms"
 												className="text-sm font-normal text-muted-foreground"
 											>
-												I accept the{" "}
+												<TranslatedText text="I accept the" />{" "}
 												<Link
 													href="/terms"
 													className="underline hover:text-primary"
 												>
-													terms and conditions
+													<TranslatedText text="terms and conditions" />
 												</Link>
 											</Label>
 											{errors.acceptTerms && (
@@ -432,7 +432,7 @@ export default function RegisterPage() {
 								className="w-full h-10 font-semibold"
 								disabled={isSubmitting}
 							>
-								{isSubmitting ? "Creating account..." : "Create account"}
+								{isSubmitting ? <TranslatedText text="Creating account..." /> : <TranslatedText text="Create account" />}
 							</Button>
 						</form>
 					</motion.div>
@@ -443,7 +443,7 @@ export default function RegisterPage() {
 							</div>
 							<div className="relative flex justify-center text-xs uppercase">
 								<span className="bg-slate-50 dark:bg-zinc-950 px-2 text-muted-foreground">
-									Or register with
+									<TranslatedText text="Or register with" />
 								</span>
 							</div>
 						</div>

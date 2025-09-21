@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Dropzone } from "@/components/ui/dropzone";
 import Footer from "@/components/Footer";
+import { TranslatedText } from "@/components/TranslatedText";
 
 const AnimatedFileIcon = () => (
 	<motion.div
@@ -75,11 +76,11 @@ const Testimonials = () => (
 						<div className="flex items-center mb-4">
 							<img src={t.avatar} alt={t.name} className="h-12 w-12 rounded-full mr-4 border-2 border-slate-300 dark:border-[#2A434F]"/>
 							<div>
-								<h4 className="font-bold text-slate-800 dark:text-[#CFE7EE]">{t.name}</h4>
-								<p className="text-sm text-slate-500 dark:text-[#708B96]">{t.title}</p>
+								<h4 className="font-bold text-slate-800 dark:text-[#CFE7EE]"><TranslatedText text={t.name} /></h4>
+								<p className="text-sm text-slate-500 dark:text-[#708B96]"><TranslatedText text={t.title} /></p>
 							</div>
 						</div>
-						<p className="text-slate-600 dark:text-[#8FA7B2]">"{t.text}"</p>
+						<p className="text-slate-600 dark:text-[#8FA7B2]">"<TranslatedText text={t.text} />"</p>
 					</div>
 				</MotionWrapper>
 			))}
@@ -111,11 +112,11 @@ export default function UploadPage() {
 				<MotionWrapper>
 					<div className="relative z-10 w-full max-w-3xl text-center mb-8">
 						<h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-6xl">
-							Deconstruct Legal Jargon
+							<TranslatedText text="Deconstruct Legal Jargon" />
 						</h1>
 						<p className="mt-4 text-xl text-slate-600 dark:text-[#8FA7B2] leading-relaxed">
-							<span className="font-semibold text-teal-600 dark:text-teal-400">Instant</span> AI-powered legal clarity.{" "}
-							<span className="font-semibold text-teal-600 dark:text-teal-400">Securely</span> upload your document and get results in seconds.
+							<span className="font-semibold text-teal-600 dark:text-teal-400"><TranslatedText text="Instant" /></span> <TranslatedText text="AI-powered legal clarity." />{" "}
+							<span className="font-semibold text-teal-600 dark:text-teal-400"><TranslatedText text="Securely" /></span> <TranslatedText text="upload your document and get results in seconds." />
 						</p>
 					</div>
 				</MotionWrapper>
@@ -129,10 +130,10 @@ export default function UploadPage() {
 				<MotionWrapper delay={0.2}>
 					<div className="relative z-10 flex justify-center flex-wrap gap-4 mb-16">
 						<button className="px-8 py-3 rounded-md font-semibold text-white bg-gradient-to-r from-emerald-500 to-teal-500 hover:opacity-90 transition-opacity shadow-lg">
-							View Sample Analysis
+							<TranslatedText text="View Sample Analysis" />
 						</button>
 						<button className="px-8 py-3 rounded-md font-semibold text-slate-700 dark:text-[#A0B5BD] bg-transparent border border-slate-300 dark:border-[#1A313C] hover:bg-slate-100 dark:hover:bg-[#1A313C] transition-colors">
-							Learn How It Works
+							<TranslatedText text="Learn How It Works" />
 						</button>
 					</div>
 				</MotionWrapper>
@@ -142,7 +143,7 @@ export default function UploadPage() {
 				</div>
 
 				<MotionWrapper delay={0.3}>
-					<h2 className="text-3xl font-bold text-center mb-10 text-slate-800 dark:text-[#CFE7EE] relative z-10 ">Trusted by Top Legal Professionals</h2>
+					<h2 className="text-3xl font-bold text-center mb-10 text-slate-800 dark:text-[#CFE7EE] relative z-10 "><TranslatedText text="Trusted by Top Legal Professionals" /></h2>
 					<Testimonials />
 				</MotionWrapper>
 			</main>

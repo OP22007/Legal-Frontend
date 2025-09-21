@@ -22,6 +22,8 @@ import {
 import { Icons } from '@/components/icons';
 import type { Message } from '@/types/chat';
 import DocumentViewer from '@/app/analysis/[documentId]/DocumentViewer';
+import { TranslatedText } from "@/components/TranslatedText";
+import { useTranslate } from "@/hooks/useTranslate";
 
 interface ChatClientProps {
   documentId: string;
@@ -141,6 +143,7 @@ const Typewriter = ({ text, onAnimationComplete }: { text: string, onAnimationCo
 const ChatBubble = React.memo(({ message, isLast, isLoading, setIsLoading }: { message: Message, isLast: boolean, isLoading: boolean, setIsLoading: (value: boolean) => void }) => {
   const isUser = message.role === 'user';
   const showTypewriter = isLast && isLoading && message.role === 'assistant';
+  const translatedContent = useTranslate(message.content);
 
   return (
     <motion.div
@@ -176,9 +179,9 @@ const ChatBubble = React.memo(({ message, isLast, isLoading, setIsLoading }: { m
         )}
       >
         {isUser ? (
-          <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>
+          <p className="whitespace-pre-wrap leading-relaxed">{translatedContent}</p>
         ) : (
-          showTypewriter ? <Typewriter text={message.content} onAnimationComplete={() => setIsLoading(false)} /> : <ReactMarkdown>{message.content}</ReactMarkdown>
+          showTypewriter ? <Typewriter text={translatedContent} onAnimationComplete={() => setIsLoading(false)} /> : <ReactMarkdown>{translatedContent}</ReactMarkdown>
         )}
         {!isUser && message.sources && (
           <motion.div
@@ -189,7 +192,7 @@ const ChatBubble = React.memo(({ message, isLast, isLoading, setIsLoading }: { m
             <Accordion type="single" collapsible className="mt-3">
               <AccordionItem value="item-1" className="border-none">
                 <AccordionTrigger className="text-xs py-2 hover:no-underline text-teal-600 dark:text-teal-400 font-medium">
-                  View clause details
+                  <TranslatedText text="View clause details" />
                 </AccordionTrigger>
                 <AccordionContent className="text-xs text-gray-600 dark:text-gray-400 bg-gray-100/80 dark:bg-zinc-800/80 p-3 rounded-lg mt-2 border border-gray-200/50 dark:border-zinc-700/50">
                   <pre className="whitespace-pre-wrap font-mono text-xs">
@@ -376,7 +379,7 @@ export function ChatClient({ documentId, documentName, documentUrl }: ChatClient
           <Icon className="w-5 h-5 text-gray-600 dark:text-gray-400 group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors" />
         </motion.div>
         <span className="text-xs font-medium text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-300 transition-colors writing-mode-vertical">
-          {label}
+          <TranslatedText text={label} />
         </span>
       </motion.button>
       
@@ -460,7 +463,7 @@ export function ChatClient({ documentId, documentName, documentUrl }: ChatClient
             >
               <div className="h-full flex flex-col">
                 <div className="p-4 border-b border-gray-200 dark:border-zinc-800 flex items-center justify-between">
-                  <h2 className="font-semibold text-gray-900 dark:text-gray-100">Document Viewer</h2>
+                  <h2 className="font-semibold text-gray-900 dark:text-gray-100"><TranslatedText text="Document Viewer" /></h2>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -536,7 +539,7 @@ export function ChatClient({ documentId, documentName, documentUrl }: ChatClient
                   whileHover={{ scale: 1.02 }}
                   className="text-lg font-bold text-gray-900 dark:text-gray-100 truncate transition-colors group-hover:text-teal-600 dark:group-hover:text-teal-400"
                 >
-                  {documentName}
+                  <TranslatedText text={documentName} />
                 </motion.h1>
                 <motion.span
                   initial={{ scale: 0 }}
@@ -545,7 +548,7 @@ export function ChatClient({ documentId, documentName, documentUrl }: ChatClient
                   className="flex items-center text-xs font-semibold text-emerald-700 bg-emerald-100/80 dark:text-emerald-300 dark:bg-emerald-900/50 px-3 py-1 rounded-full transition-all group-hover:shadow-md border border-emerald-200/50 dark:border-emerald-800/50"
                 >
                   <Icons.secure className="w-3 h-3 mr-1.5" />
-                  Secure Chat
+                  <TranslatedText text="Secure Chat" />
                 </motion.span>
               </div>
               <div className="flex items-center space-x-2">
@@ -556,7 +559,7 @@ export function ChatClient({ documentId, documentName, documentUrl }: ChatClient
                     onClick={() => setIsDocViewerOpen(true)}
                     className="bg-white/80 dark:bg-zinc-800/80 backdrop-blur-sm hover:bg-white dark:hover:bg-zinc-800"
                   >
-                    View Document
+                    <TranslatedText text="View Document" />
                   </Button>
                 )}
                 {isLg && (

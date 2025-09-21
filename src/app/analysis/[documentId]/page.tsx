@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { AnalysisClient, type DocumentWithAnalysis } from "./client";
+import { TranslatedText } from "@/components/TranslatedText";
 
 // This is the main page component.
 export default async function AnalysisPage({
@@ -32,7 +33,7 @@ export default async function AnalysisPage({
     });
 
     if (!document) {
-      return <div className="flex items-center justify-center h-screen text-xl">Document not found.</div>;
+      return <div className="flex items-center justify-center h-screen text-xl"><TranslatedText text='Document not found.'/></div>;
     }
 
     // The cast is needed because Prisma's return type for includes is not automatically
@@ -40,6 +41,6 @@ export default async function AnalysisPage({
     return <AnalysisClient document={document as DocumentWithAnalysis} />;
   } catch (error) {
     console.error("Failed to fetch document:", error);
-    return <div className="flex items-center justify-center h-screen text-xl text-red-500">Error loading analysis. Please try again later.</div>;
+    return <div className="flex items-center justify-center h-screen text-xl text-red-500"><TranslatedText text='Error loading analysis. Please try again later.'/></div>;
   }
 }

@@ -17,6 +17,24 @@ async function getDocument(documentId: string) {
       // userId: userId,
     },
   });
+
+  if (!document) {
+    return null;
+  }
+
+  // Ensure all required fields are present and are strings
+  if (typeof document.id !== 'string' ||
+      typeof document.originalFileName !== 'string' ||
+      typeof document.storageUrl !== 'string') {
+    console.error('Document has invalid field types:', {
+      id: typeof document.id,
+      originalFileName: typeof document.originalFileName,
+      storageUrl: typeof document.storageUrl,
+      document
+    });
+    return null;
+  }
+
   return document;
 }
 
@@ -33,11 +51,17 @@ export default async function ChatPage({ params }: ChatPageProps) {
     return notFound();
   }
 
+  // Ensure document has required properties
+  if (!document.id || !document.originalFileName || !document.storageUrl) {
+    console.error('Document missing required properties:', document);
+    return notFound();
+  }
+
   return (
     <ChatClient
-      documentId={document.id}
-      documentName={document.originalFileName}
-      documentUrl={document.storageUrl}
+      documentId={String(document.id)}
+      documentName={String(document.originalFileName)}
+      documentUrl={String(document.storageUrl)}
     />
   );
 }

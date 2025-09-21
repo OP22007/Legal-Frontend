@@ -28,6 +28,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { TranslatedText } from "@/components/TranslatedText";
 
 // --- TYPE DEFINITIONS ---
 interface Document {
@@ -201,7 +202,7 @@ const Sidebar = ({ activeCategory, setActiveCategory, selectedTags, handleTagCli
             <div className="flex flex-col h-full p-4">
                 <div className="flex items-center justify-between mb-8">
                    {isExpanded && <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-teal-400 to-purple-500">
-                        LegisEye
+                        <TranslatedText text="LegisEye" />
                     </h2>}
                     <Button variant="ghost" size="icon" onClick={toggleSidebar} className="text-gray-500 hover:text-gray-900 dark:hover:text-gray-100">
                         <ChevronsRight className={cn("transition-transform", !isExpanded && "rotate-180")}/>
@@ -209,12 +210,12 @@ const Sidebar = ({ activeCategory, setActiveCategory, selectedTags, handleTagCli
                 </div>
                 
                 <div className={cn(!isExpanded && "opacity-0 invisible transition-opacity duration-200")}>
-                    <h3 className="font-semibold text-sm mb-2 text-gray-500 dark:text-gray-400">FAVORITES</h3>
+                    <h3 className="font-semibold text-sm mb-2 text-gray-500 dark:text-gray-400"><TranslatedText text="FAVORITES" /></h3>
                     <ul className="space-y-1 mb-6">
                         <SidebarItem icon={<Star />} text="Favorites" isActive={showFavorites} onClick={() => setShowFavorites(!showFavorites)} />
                     </ul>
 
-                    <h3 className="font-semibold text-sm mb-2 text-gray-500 dark:text-gray-400">CATEGORIES</h3>
+                    <h3 className="font-semibold text-sm mb-2 text-gray-500 dark:text-gray-400"><TranslatedText text="CATEGORIES" /></h3>
                     <ul className="space-y-1 mb-6">
                         <SidebarItem text="All" isActive={activeCategory === 'All'} onClick={() => { setActiveCategory('All'); setShowFavorites(false); }} />
                         {categories.map(cat => (
@@ -222,7 +223,7 @@ const Sidebar = ({ activeCategory, setActiveCategory, selectedTags, handleTagCli
                         ))}
                     </ul>
 
-                    <h3 className="font-semibold text-sm mb-2 text-gray-500 dark:text-gray-400">TAGS</h3>
+                    <h3 className="font-semibold text-sm mb-2 text-gray-500 dark:text-gray-400"><TranslatedText text="TAGS" /></h3>
                     <div className="flex flex-wrap gap-2">
                         {allTags.map(tag => (
                             <motion.button
@@ -237,7 +238,7 @@ const Sidebar = ({ activeCategory, setActiveCategory, selectedTags, handleTagCli
                                     : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'
                                 )}
                             >
-                                {tag}
+                                <TranslatedText text={tag} />
                             </motion.button>
                         ))}
                     </div>
@@ -256,7 +257,7 @@ const SidebarItem = ({ icon, text, isActive, onClick }: any) => (
         )}
     >
         {icon}
-        <span>{text}</span>
+        <span><TranslatedText text={text} /></span>
         {isActive && (
             <motion.div
                 layoutId="activeIndicator"
@@ -277,11 +278,11 @@ const Header = () => {
                 <Input placeholder="Search documents..." className="pl-10 bg-white/50 dark:bg-gray-800/50 border-0"/>
             </div>
             <div className="flex items-center space-x-2">
-                <Button variant="ghost" size="sm">Sort by</Button>
-                <Button variant="ghost" size="sm">Filter <Filter className="ml-2 h-4 w-4"/></Button>
+                <Button variant="ghost" size="sm"><TranslatedText text="Sort by" /></Button>
+                <Button variant="ghost" size="sm"><TranslatedText text="Filter" /> <Filter className="ml-2 h-4 w-4"/></Button>
                 <Button className='cursor-pointer bg-teal-500 hover:bg-teal-600 dark:text-white' onClick={() => router.push('/upload')}>
                     <Plus className="mr-2 h-4 w-4" />
-                    Upload
+                    <TranslatedText text="Upload" />
                 </Button>
             </div>
         </div>
@@ -335,16 +336,16 @@ const DocumentCard = ({ doc, variants, onCardClick }: { doc: Document, variants:
         <div className="absolute inset-0 rounded-2xl border border-transparent group-hover:border-teal-500/50 transition-colors duration-300 pointer-events-none" />
         <div className="flex-grow p-4">
             <h3 className="font-bold text-base bg-clip-text text-transparent bg-gradient-to-r from-gray-700 to-gray-900 dark:from-gray-100 dark:to-gray-300 truncate">
-              {doc.originalFileName}
+              <TranslatedText text={doc.originalFileName} />
             </h3>
             <p className="text-xs text-gray-500 mt-1">
-                {format(new Date(doc.createdAt), 'PP')}
+                <TranslatedText text={format(new Date(doc.createdAt), 'PP')} />
             </p>
         </div>
         <div className="p-4 flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <div className={cn("px-2 py-0.5 text-xs text-white rounded-full", riskColor[doc.riskLevel])}>
-                  {doc.riskLevel} Risk
+                  <TranslatedText text={`${doc.riskLevel} Risk`} />
               </div>
               {doc.isFavorite && <Star className="h-4 w-4 text-yellow-400 fill-current" />}
             </div>
@@ -378,26 +379,26 @@ const DocumentDetailDrawer = ({ document, onClose }: { document: Document; onClo
             className="fixed top-0 right-0 h-full w-full max-w-md bg-warm-gray dark:bg-charcoal z-50 shadow-2xl p-6 flex flex-col"
         >
             <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold">{document.originalFileName}</h2>
+                <h2 className="text-2xl font-bold"><TranslatedText text={document.originalFileName} /></h2>
                 <Button variant="ghost" size="icon" onClick={onClose}><X /></Button>
             </div>
             <div className="flex-grow overflow-y-auto pr-2">
-                <h3 className="font-semibold mb-2">Details</h3>
-                <p>Category: {document.category}</p>
-                <p>Risk Level: {document.riskLevel}</p>
-                <p>Tags: {document.tags.join(', ')}</p>
-                <p>Uploaded: {format(new Date(document.createdAt), 'PPP p')}</p>
+                <h3 className="font-semibold mb-2"><TranslatedText text="Details" /></h3>
+                <p><TranslatedText text="Category:" /> {document.category}</p>
+                <p><TranslatedText text="Risk Level:" /> {document.riskLevel}</p>
+                <p><TranslatedText text="Tags:" /> {document.tags.join(', ')}</p>
+                <p><TranslatedText text="Uploaded:" /> {format(new Date(document.createdAt), 'PPP p')}</p>
                 
                 <div className="mt-6">
-                    <h3 className="font-semibold mb-2">Document Preview</h3>
+                    <h3 className="font-semibold mb-2"><TranslatedText text="Document Preview" /></h3>
                     <div className="h-64 bg-gray-200 dark:bg-gray-800 rounded-lg flex items-center justify-center">
-                        <p className="text-gray-500">Preview not available</p>
+                        <p className="text-gray-500"><TranslatedText text="Preview not available" /></p>
                     </div>
                 </div>
             </div>
             <div className="mt-6 flex space-x-2">
-                <Button className="flex-1"><Download className="mr-2 h-4 w-4"/> Download</Button>
-                <Button className="flex-1" variant="outline"><Share2 className="mr-2 h-4 w-4"/> Share</Button>
+                <Button className="flex-1"><Download className="mr-2 h-4 w-4"/> <TranslatedText text="Download" /></Button>
+                <Button className="flex-1" variant="outline"><Share2 className="mr-2 h-4 w-4"/> <TranslatedText text="Share" /></Button>
             </div>
         </motion.div>
       </>
@@ -421,13 +422,13 @@ const EmptyState = () => {
       >
         <FileText size={64} className="text-gray-300 dark:text-gray-600" />
       </motion.div>
-      <h2 className="text-2xl font-semibold mt-6">No Documents Found</h2>
+      <h2 className="text-2xl font-semibold mt-6"><TranslatedText text="No Documents Found" /></h2>
       <p className="text-gray-500 mt-2 mb-6 max-w-sm">
-          It looks like there's nothing here yet. Try uploading a document to get started.
+          <TranslatedText text="It looks like there's nothing here yet. Try uploading a document to get started."/>
       </p>
       <Button className='cursor-pointer bg-teal-500 hover:bg-teal-600 dark:text-white' onClick={() => router.push('/upload')}>
           <Plus className="mr-2 h-4 w-4" />
-          Upload Your First Document
+          <TranslatedText text="Upload Your First Document" />
       </Button>
     </motion.div>
   );
