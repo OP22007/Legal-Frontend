@@ -83,7 +83,8 @@ export function Dropzone() {
     if (!fileToProcess) return;
     setIsProcessing(true);
     const toastId = toast.loading("Starting process...");
-    const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8000';
+    const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+    console.log("Using backend URL:", BACKEND_URL);
     try {
       const formData = new FormData();
       formData.append("file", fileToProcess);

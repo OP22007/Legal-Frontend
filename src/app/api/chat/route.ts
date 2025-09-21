@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
         content: message,
       },
     });
-    const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8000';
+    const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
     // 3. Call the external AI service
     const response = await fetch(`${BACKEND_URL}/chat`, {
       method: 'POST',
