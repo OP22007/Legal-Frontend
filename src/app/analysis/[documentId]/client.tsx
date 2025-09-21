@@ -322,7 +322,7 @@ const Eli5Summary = ({ summary }: { summary: string }) => {
     return (
         <SectionWrapper>
             <Card className="bg-white/60 dark:bg-black/20 backdrop-blur-lg border border-gray-200 dark:border-white/10">
-                <CardHeader><CardTitle className="flex items-center text-gray-800 dark:text-white"><Lightbulb className="mr-2"/><TranslatedText text='ELI5 Summary'/></CardTitle></CardHeader>
+                <CardHeader><CardTitle className="flex items-center text-gray-800 dark:text-white"><Lightbulb className="mr-2"/><TranslatedText text='Summary of the Document'/></CardTitle></CardHeader>
                 <CardContent ref={ref} className="text-gray-700 dark:text-gray-200 leading-relaxed min-h-[12rem] font-mono">
                     {isTranslated ? animatedSummary : summary}
                     {isInView && animatedSummary.length === translatedSummary.length ? null : <span className="inline-block w-2 h-5 bg-gray-800 dark:bg-white animate-pulse ml-1" />}
