@@ -88,12 +88,13 @@ export async function POST(req: Request) {
 				},
 				riskFactors: {
 					create: risk_alerts.map((alert: {
-						severity: string;description: string
+						severity: string;description: string;title:string;suggested_action:string
 					}) => ({
-						title: alert.description.slice(0, 50),
+						title: alert.title,
 						description: alert.description,
 						severity: alert.severity.toUpperCase() as RiskLevel,
 						category: "LEGAL", // Default category
+						mitigation:alert.suggested_action
 					})),
 				},
 				glossaryTerms: {
