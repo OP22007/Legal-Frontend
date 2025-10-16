@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { useSession, signOut } from "next-auth/react";
 import { LogOut, User as UserIcon, Settings } from "lucide-react";
@@ -9,6 +9,7 @@ import { TranslatedLink } from "@/components/TranslatedLink";
 
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { LanguageToggle } from "@/components/ui/language-toggle";
+import { NotificationBell } from "@/components/NotificationBell";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
 	DropdownMenu,
@@ -25,6 +26,7 @@ const navLinks = [
 	{ href: "/", label: "Home" },
 	{ href: "/upload", label: "Upload" },
 	{ href: "/dashboard", label: "Documents" },
+	{ href: "/teams", label: "Teams" },
 	{ href: "/contact", label: "Contact" },
 ];
 
@@ -39,6 +41,7 @@ const getInitials = (name: string | null | undefined = ""): string => {
 
 export default function Navbar() {
 	const pathname = usePathname();
+	const router = useRouter();
 	const { data: session, status } = useSession();
 
 	return (
@@ -75,6 +78,7 @@ export default function Navbar() {
 				<div className="flex items-center gap-4">
 					<ThemeToggle />
 					<LanguageToggle />
+					<NotificationBell />
 
 					{status === "loading" && (
 						<div className="flex items-center gap-2">
@@ -112,7 +116,7 @@ export default function Navbar() {
 									<p className="text-xs text-muted-foreground">{session.user?.email}</p>
 								</DropdownMenuLabel>
 								<DropdownMenuSeparator />
-								<DropdownMenuItem className="cursor-pointer">
+								<DropdownMenuItem className="cursor-pointer" onClick={() => router.push('/dashboard/profile')}>
 									<UserIcon className="mr-2 h-4 w-4" />
 									<span>Profile</span>
 								</DropdownMenuItem>

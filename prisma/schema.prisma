@@ -52,16 +52,16 @@ model User {
   emailVerificationToken String?    @unique
   passwordResetToken    String?     @unique
   passwordResetExpires  DateTime?
-  
+
   // User preferences
   notificationsEnabled  Boolean     @default(true)
   dataRetentionDays     Int         @default(30) // Auto-delete documents after X days
-  
+
   // Timestamps
   createdAt            DateTime    @default(now())
   updatedAt            DateTime    @updatedAt
   lastLoginAt          DateTime?
-  
+
   // Relations
   accounts            Account[]   // REQUIRED BY NEXTAUTH
   sessions            Session[]   // REQUIRED BY NEXTAUTH
@@ -69,7 +69,17 @@ model User {
   chatSessions         ChatSession[]
   exportHistory        ExportHistory[]
   userAnalytics        UserAnalytics[]
+
+  // Team Management Relations
+  ownedTeams           Team[]      @relation("TeamOwner")
+  teamMemberships      TeamMember[]
+  sentInvitations      TeamInvitation[] @relation("InvitationSender")
+  receivedInvitations  TeamInvitation[] @relation("InvitationReceiver")
   
+  // Notification Relations
+  notifications        Notification[]
+  auditLogs            AuditLog[]
+
   @@map("users")
 }
 
@@ -582,6 +592,222 @@ model SystemConfig {
 }
 
 // =====================================================
+// TEAM MANAGEMENT SYSTEM
+// =====================================================
+
+enum TeamMemberRole {
+  OWNER        // Full control, can delete team
+  ADMIN        // Can manage members, roles, and settings
+  MEMBER       // Can view and interact with team documents
+  VIEWER       // Read-only access
+}
+
+enum TeamMemberStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  EXPIRED
+  CANCELLED
+}
+
+enum TeamPermission {
+  MANAGE_TEAM        // Edit team settings
+  INVITE_MEMBERS     // Send invitations
+  REMOVE_MEMBERS     // Remove team members
+  MANAGE_ROLES       // Change member roles
+  UPLOAD_DOCUMENTS   // Upload new documents
+  DELETE_DOCUMENTS   // Delete documents
+  EXPORT_DOCUMENTS   // Export documents
+  VIEW_ANALYTICS     // View team analytics
+}
+
+model Team {
+  id                   String        @id @default(cuid())
+  name                 String
+  description          String?
+  ownerId              String
+
+  // Team settings
+  isActive             Boolean       @default(true)
+  maxMembers           Int           @default(50)
+  allowInvites         Boolean       @default(true)
+  requireApproval      Boolean       @default(true)
+
+  // Branding
+  avatar               String?       // Team logo/avatar URL
+  color                String        @default("#0ea5e9") // Brand color
+
+  // Timestamps
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  // Relations
+  owner               User          @relation("TeamOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members             TeamMember[]
+  invitations         TeamInvitation[]
+  analytics           TeamAnalytics[]
+
+  @@map("teams")
+  @@index([ownerId])
+  @@index([createdAt])
+}
+
+model TeamMember {
+  id                   String              @id @default(cuid())
+  teamId               String
+  userId               String
+
+  // Role and permissions
+  role                 TeamMemberRole      @default(MEMBER)
+  status               TeamMemberStatus    @default(ACTIVE)
+  customPermissions    Json?               // Override default role permissions
+
+  // Member stats
+  documentsReviewed    Int                 @default(0)
+  lastActiveAt         DateTime?
+
+  // Metadata
+  joinedAt            DateTime            @default(now())
+  invitedBy           String?             // User ID who sent invitation
+  notes               String?             // Admin notes about this member
+
+  // Timestamps
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  // Relations
+  team                Team                @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user                User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@map("team_members")
+  @@index([teamId, status])
+  @@index([userId])
+}
+
+// =====================================================
+// NOTIFICATION SYSTEM
+// =====================================================
+
+enum NotificationType {
+  TEAM_INVITATION
+  TEAM_INVITATION_ACCEPTED
+  TEAM_INVITATION_DECLINED
+  TEAM_MEMBER_ADDED
+  TEAM_MEMBER_REMOVED
+  TEAM_ROLE_CHANGED
+  DOCUMENT_SHARED
+  MENTION
+  SYSTEM_ANNOUNCEMENT
+}
+
+model Notification {
+  id                   String              @id @default(cuid())
+  userId               String
+  type                 NotificationType
+  title                String
+  message              String
+  read                 Boolean             @default(false)
+  
+  // Optional metadata
+  link                 String?             // URL to navigate to
+  actionLabel          String?             // Button label (e.g., "View Team", "Accept")
+  metadata             Json?               // Additional data
+  
+  // Timestamps
+  createdAt            DateTime            @default(now())
+  readAt               DateTime?
+
+  // Relations
+  user                 User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+  @@index([userId, read])
+  @@index([createdAt])
+}
+
+// =====================================================
+// TEAM MANAGEMENT
+// =====================================================
+
+model TeamInvitation {
+  id                   String              @id @default(cuid())
+  teamId               String
+
+  // Invitation details
+  email                String
+  role                 TeamMemberRole      @default(MEMBER)
+  status               InvitationStatus    @default(PENDING)
+
+  // Invitation metadata
+  invitedById          String              // User who sent invitation
+  invitedUserId        String?             // Filled when email matches existing user
+  token                String              @unique @default(cuid())
+
+  // Message
+  message              String?             // Personal message from inviter
+
+  // Expiration
+  expiresAt           DateTime            // Invitation expiry (7 days default)
+
+  // Response tracking
+  respondedAt         DateTime?
+
+  // Timestamps
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  // Relations
+  team                Team                @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  invitedBy           User                @relation("InvitationSender", fields: [invitedById], references: [id], onDelete: Cascade)
+  invitedUser         User?               @relation("InvitationReceiver", fields: [invitedUserId], references: [id], onDelete: SetNull)
+
+  @@map("team_invitations")
+  @@index([teamId, status])
+  @@index([email, status])
+  @@index([token])
+  @@index([expiresAt])
+}
+
+model TeamAnalytics {
+  id                   String        @id @default(cuid())
+  teamId               String
+
+  // Daily metrics
+  date                 DateTime      @default(now()) @db.Date
+
+  // Member metrics
+  activeMembers        Int           @default(0)
+  newMembers           Int           @default(0)
+
+  // Document metrics
+  documentsUploaded    Int           @default(0)
+  documentsAnalyzed    Int           @default(0)
+  documentsShared      Int           @default(0)
+
+  // Collaboration metrics
+  chatSessionsCreated  Int           @default(0)
+  commentsAdded        Int           @default(0)
+
+  // Timestamps
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  // Relations
+  team                Team          @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, date])
+  @@map("team_analytics")
+  @@index([date])
+}
+
+// =====================================================
 // AUDIT LOG
 // =====================================================
 
@@ -596,30 +822,37 @@ enum ActionType {
   CHAT_SESSION_STARTED
   RISK_DETECTED
   ERROR_OCCURRED
+  TEAM_CREATED
+  TEAM_MEMBER_ADDED
+  TEAM_MEMBER_REMOVED
+  TEAM_INVITATION_SENT
 }
 
 model AuditLog {
   id                   String        @id @default(cuid())
-  
+
   // Action details
   action               ActionType
   entityType           String        // "user", "document", "chat", etc.
   entityId             String        // ID of the affected entity
   userId               String?       // User who performed the action
-  
+
   // Action context
   details              Json?         // Additional action details
   ipAddress            String?
   userAgent            String?
-  
+
   // Metadata
   success              Boolean       @default(true)
   errorMessage         String?
   processingTimeMs     Int?
-  
+
   // Timestamp
   createdAt           DateTime      @default(now())
-  
+
+  // Relations
+  user                User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+
   @@map("audit_logs")
   @@index([action, createdAt])
   @@index([entityType, entityId])

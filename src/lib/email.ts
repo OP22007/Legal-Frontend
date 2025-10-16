@@ -1,11 +1,16 @@
 import nodemailer from "nodemailer";
 
-export async function sendVerificationEmail({
+// Generic email sending function
+export async function sendEmail({
   to,
-  token,
+  subject,
+  html,
+  text,
 }: {
   to: string;
-  token: string;
+  subject: string;
+  html: string;
+  text?: string;
 }) {
   // Configure your SMTP transport here
   const transporter = nodemailer.createTransport({
@@ -18,14 +23,30 @@ export async function sendVerificationEmail({
     },
   });
 
+  await transporter.sendMail({
+    from: `LegisEye <${process.env.SMTP_USER}>`,
+    to,
+    subject,
+    html,
+    text: text || subject,
+  });
+}
+
+export async function sendVerificationEmail({
+  to,
+  token,
+}: {
+  to: string;
+  token: string;
+}) {
   const verificationUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/auth/verify-email?token=${token}`;
 
-  await transporter.sendMail({
-    from: `Legal Platform <${process.env.SMTP_USER}>`,
+  await sendEmail({
     to,
     subject: "Verify your email address",
     html: `<p>Welcome! Please verify your email by clicking the link below:</p>
       <p><a href="${verificationUrl}">${verificationUrl}</a></p>
       <p>If you did not sign up, please ignore this email.</p>`,
+    text: `Welcome! Please verify your email by visiting: ${verificationUrl}`,
   });
 }
