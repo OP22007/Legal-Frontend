@@ -6,7 +6,7 @@ import { prisma } from '@/lib/db';
 // GET - Fetch team details
 export async function GET(
   req: NextRequest,
-  { params }: { params: { teamId: string } }
+  { params }: { params: Promise<{ teamId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -23,7 +23,7 @@ export async function GET(
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const teamId = params.teamId;
+    const { teamId } = await params;
 
     const team = await prisma.team.findUnique({
       where: { id: teamId },
@@ -104,7 +104,7 @@ export async function GET(
 // PATCH - Update team details
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { teamId: string } }
+  { params }: { params: Promise<{ teamId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -121,7 +121,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const teamId = params.teamId;
+    const { teamId } = await params;
     const body = await req.json();
 
     // Check if user has permission (owner or admin)
@@ -191,7 +191,7 @@ export async function PATCH(
 // DELETE - Delete team
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { teamId: string } }
+  { params }: { params: Promise<{ teamId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -208,7 +208,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const teamId = params.teamId;
+    const { teamId } = await params;
 
     const team = await prisma.team.findUnique({
       where: { id: teamId }

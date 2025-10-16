@@ -6,7 +6,7 @@ import { prisma } from '@/lib/db';
 // PATCH - Update member role or status
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { teamId: string; memberId: string } }
+  { params }: { params: Promise<{ teamId: string; memberId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -23,7 +23,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const { teamId, memberId } = params;
+    const { teamId, memberId } = await params;
     const body = await req.json();
     const { role, status } = body;
 
@@ -102,7 +102,7 @@ export async function PATCH(
 // DELETE - Remove member from team
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { teamId: string; memberId: string } }
+  { params }: { params: Promise<{ teamId: string; memberId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -119,7 +119,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const { teamId, memberId } = params;
+    const { teamId, memberId } = await params;
 
     // Check permissions
     const membership = await prisma.teamMember.findUnique({

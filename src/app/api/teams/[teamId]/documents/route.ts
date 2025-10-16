@@ -6,7 +6,7 @@ import { prisma } from '@/lib/db';
 // GET: Fetch all documents shared with the team
 export async function GET(
   request: NextRequest,
-  { params }: { params: { teamId: string } }
+  { params }: { params: Promise<{ teamId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -14,7 +14,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { teamId } = params;
+    const { teamId } = await params;
 
     // Check if user is member of team
     const membership = await prisma.teamMember.findFirst({
@@ -74,10 +74,10 @@ export async function GET(
   }
 }
 
-// POST: Share a document with the team
+// POST: Share document with team
 export async function POST(
   request: NextRequest,
-  { params }: { params: { teamId: string } }
+  { params }: { params: Promise<{ teamId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -85,7 +85,7 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { teamId } = params;
+    const { teamId } = await params;
     const { documentId, permission, canDownload, canShare, expiresAt } = await request.json();
 
     if (!documentId) {
@@ -219,7 +219,7 @@ export async function POST(
 // DELETE: Remove document from team
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { teamId: string } }
+  { params }: { params: Promise<{ teamId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -227,7 +227,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { teamId } = params;
+    const { teamId } = await params;
     const { searchParams } = new URL(request.url);
     const teamDocumentId = searchParams.get('teamDocumentId');
 

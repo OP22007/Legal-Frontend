@@ -5,9 +5,9 @@ import { ChatClient } from './client';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { getServerSession } from 'next-auth';
 interface ChatPageProps {
-  params: {
+  params: Promise<{
     documentId: string;
-  };
+  }>;
 }
 
 async function getDocument(documentId: string) {
@@ -39,13 +39,14 @@ async function getDocument(documentId: string) {
 }
 
 export default async function ChatPage({ params }: ChatPageProps) {
+  const { documentId } = await params;
   // const { data: session } = await getServerSession(authOptions);
   // if (!session?.user?.id) {
   //   // Or redirect to login
   //   return notFound();
   // }
 
-  const document = await getDocument(params.documentId);
+  const document = await getDocument(documentId);
 
   if (!document) {
     return notFound();

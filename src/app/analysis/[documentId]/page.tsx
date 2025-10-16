@@ -6,11 +6,12 @@ import { TranslatedText } from "@/components/TranslatedText";
 export default async function AnalysisPage({
   params,
 }: {
-  params: { documentId: string };
+  params: Promise<{ documentId: string }>;
 }) {
+  const { documentId } = await params;
   try {
     const document = await prisma.document.findUnique({
-      where: { id: params.documentId },
+      where: { id: documentId },
       include: {
         analyses: {
           orderBy: {

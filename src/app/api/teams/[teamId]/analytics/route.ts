@@ -7,7 +7,7 @@ import { getTeamStats } from '@/lib/team-utils';
 // GET - Fetch team analytics
 export async function GET(
   req: NextRequest,
-  { params }: { params: { teamId: string } }
+  { params }: { params: Promise<{ teamId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -24,7 +24,7 @@ export async function GET(
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const teamId = params.teamId;
+    const { teamId } = await params;
 
     // Check if user is a member of the team
     const membership = await prisma.teamMember.findUnique({

@@ -7,7 +7,7 @@ import { sendEmail } from '@/lib/email';
 // GET - Fetch team invitations
 export async function GET(
   req: NextRequest,
-  { params }: { params: { teamId: string } }
+  { params }: { params: Promise<{ teamId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -24,7 +24,7 @@ export async function GET(
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const teamId = params.teamId;
+    const { teamId } = await params;
 
     // Verify user is a member or owner
     const membership = await prisma.teamMember.findUnique({
@@ -75,7 +75,7 @@ export async function GET(
 // POST - Send team invitation
 export async function POST(
   req: NextRequest,
-  { params }: { params: { teamId: string } }
+  { params }: { params: Promise<{ teamId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -92,7 +92,7 @@ export async function POST(
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const teamId = params.teamId;
+    const { teamId } = await params;
     const body = await req.json();
     const { email, role, message } = body;
 
@@ -281,7 +281,7 @@ export async function POST(
 // DELETE - Cancel invitation
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { teamId: string } }
+  { params }: { params: Promise<{ teamId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -305,7 +305,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Invitation ID is required' }, { status: 400 });
     }
 
-    const teamId = params.teamId;
+    const { teamId } = await params;
 
     // Check permissions
     const membership = await prisma.teamMember.findUnique({

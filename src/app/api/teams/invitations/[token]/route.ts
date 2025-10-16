@@ -4,10 +4,10 @@ import { prisma } from '@/lib/db';
 // GET - Fetch invitation details by token (public endpoint for accepting invitations)
 export async function GET(
   req: NextRequest,
-  { params }: { params: { token: string } }
+  { params }: { params: Promise<{ token: string }> }
 ) {
   try {
-    const token = params.token;
+    const { token } = await params;
 
     if (!token) {
       return NextResponse.json({ error: 'Token is required' }, { status: 400 });
