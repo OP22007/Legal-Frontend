@@ -17,23 +17,20 @@ import {
   X,
   Camera,
   Loader2,
-  TrendingUp,
   Award,
   Clock,
   Shield,
   Globe,
   Bell,
-  Lock,
   Trash2,
-  Upload,
-  Check
+  Circle,
+  TrendingUp
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -55,6 +52,8 @@ interface UserProfile {
   persona: string;
   preferredLanguage: string;
   notificationsEnabled: boolean;
+  status: string;
+  statusMessage: string | null;
   createdAt: string;
   lastLoginAt: string | null;
   _count: {
@@ -156,7 +155,6 @@ export function ProfileClient() {
         setIsEditing(false);
         toast.success('Profile updated successfully!');
         
-        // Update session
         await updateSession({
           ...session,
           user: {
@@ -184,24 +182,32 @@ export function ProfileClient() {
     return <Activity className="h-4 w-4" />;
   };
 
-  const getActionColor = (action: string) => {
-    if (action.includes('CREATED') || action.includes('UPLOADED')) return 'text-green-500 bg-green-500/10';
-    if (action.includes('DELETED') || action.includes('REMOVED')) return 'text-red-500 bg-red-500/10';
-    if (action.includes('UPDATED')) return 'text-blue-500 bg-blue-500/10';
-    return 'text-gray-500 bg-gray-500/10';
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'ONLINE':
+        return 'text-green-400 fill-green-400';
+      case 'AWAY':
+        return 'text-yellow-400 fill-yellow-400';
+      case 'BUSY':
+        return 'text-red-400 fill-red-400';
+      case 'OFFLINE':
+        return 'text-gray-500 fill-gray-500';
+      default:
+        return 'text-gray-500 fill-gray-500';
+    }
   };
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background p-6">
+      <div className="min-h-screen bg-black p-6">
         <div className="max-w-6xl mx-auto space-y-6">
-          <Skeleton className="h-48 w-full rounded-xl" />
+          <Skeleton className="h-48 w-full rounded-2xl bg-gray-900" />
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Skeleton className="h-32 w-full rounded-xl" />
-            <Skeleton className="h-32 w-full rounded-xl" />
-            <Skeleton className="h-32 w-full rounded-xl" />
+            <Skeleton className="h-32 w-full rounded-2xl bg-gray-900" />
+            <Skeleton className="h-32 w-full rounded-2xl bg-gray-900" />
+            <Skeleton className="h-32 w-full rounded-2xl bg-gray-900" />
           </div>
-          <Skeleton className="h-96 w-full rounded-xl" />
+          <Skeleton className="h-96 w-full rounded-2xl bg-gray-900" />
         </div>
       </div>
     );
@@ -210,28 +216,39 @@ export function ProfileClient() {
   if (!profile) return null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-6 pt-24">
-      <div className="max-w-6xl mx-auto space-y-6">
+    <div className="min-h-screen bg-background p-6 pt-24 relative overflow-hidden">
+      {/* Decorative Elements - Dark Theme */}
+      <div className="absolute top-0 left-0 w-96 h-96 bg-blue-500/20 dark:bg-blue-500/10 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2 pointer-events-none" />
+      <div className="absolute bottom-0 right-0 w-96 h-96 bg-purple-500/20 dark:bg-purple-500/10 rounded-full blur-3xl translate-x-1/2 translate-y-1/2 pointer-events-none" />
+      
+      {/* Additional decorative elements for light theme */}
+      <div className="absolute top-20 right-20 w-64 h-64 bg-pink-400/10 dark:bg-pink-500/5 rounded-full blur-2xl pointer-events-none" />
+      <div className="absolute bottom-20 left-20 w-64 h-64 bg-cyan-400/10 dark:bg-cyan-500/5 rounded-full blur-2xl pointer-events-none" />
+      
+      <div className="max-w-6xl mx-auto space-y-6 relative z-10">
         {/* Hero Card */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <Card className="relative overflow-hidden border-2 dark:bg-gray-800/50 backdrop-blur">
-            <div className="absolute inset-0 bg-gradient-to-r from-teal-500/10 via-purple-500/10 to-pink-500/10" />
+          <Card className="relative overflow-hidden border border-border bg-card shadow-2xl dark:shadow-blue-500/5">
+            {/* Subtle gradient overlay for dark mode only */}
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 via-purple-600/5 to-pink-600/5 pointer-events-none dark:block hidden" />
+            
             <CardContent className="relative p-8">
               <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
                 <div className="relative group">
-                  <Avatar className="h-32 w-32 border-4 border-white dark:border-gray-700 shadow-xl">
+                  <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-full opacity-30 dark:opacity-50 group-hover:opacity-50 dark:group-hover:opacity-75 blur transition" />
+                  <Avatar className="relative h-32 w-32 border-4 border-border shadow-xl">
                     <AvatarImage src={profile.image || undefined} />
-                    <AvatarFallback className="text-3xl bg-gradient-to-br from-teal-500 to-purple-500 text-white">
+                    <AvatarFallback className="text-3xl bg-gradient-to-br from-blue-600 to-purple-600 text-white">
                       {profile.firstName[0]}{profile.lastName?.[0] || ''}
                     </AvatarFallback>
                   </Avatar>
                   {isEditing && (
                     <Button
                       size="icon"
-                      className="absolute bottom-0 right-0 rounded-full h-10 w-10 bg-gradient-to-r from-teal-500 to-purple-500"
+                      className="absolute bottom-0 right-0 rounded-full h-10 w-10 bg-blue-600 hover:bg-blue-700 border-2 border-border shadow-lg"
                     >
                       <Camera className="h-5 w-5" />
                     </Button>
@@ -243,17 +260,19 @@ export function ProfileClient() {
                     <div className="space-y-4">
                       <div className="flex gap-4">
                         <div className="flex-1">
-                          <Label>First Name</Label>
+                          <Label className="text-muted-foreground">First Name</Label>
                           <Input
                             value={editedProfile.firstName || ''}
                             onChange={(e) => setEditedProfile({ ...editedProfile, firstName: e.target.value })}
+                            className="bg-background border-input"
                           />
                         </div>
                         <div className="flex-1">
-                          <Label>Last Name</Label>
+                          <Label className="text-muted-foreground">Last Name</Label>
                           <Input
                             value={editedProfile.lastName || ''}
                             onChange={(e) => setEditedProfile({ ...editedProfile, lastName: e.target.value })}
+                            className="bg-background border-input"
                           />
                         </div>
                       </div>
@@ -261,7 +280,7 @@ export function ProfileClient() {
                   ) : (
                     <>
                       <div className="flex items-center gap-3 mb-2">
-                        <h1 className="text-4xl font-bold bg-gradient-to-r from-teal-500 via-purple-500 to-pink-500 bg-clip-text text-transparent">
+                        <h1 className="text-4xl font-bold text-foreground">
                           {profile.firstName} {profile.lastName}
                         </h1>
                         <Badge variant="outline" className="gap-1">
@@ -278,17 +297,17 @@ export function ProfileClient() {
                           )}
                         </Badge>
                       </div>
-                      <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
-                        <div className="flex items-center gap-1">
+                      <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-1.5">
                           <Mail className="h-4 w-4" />
                           {profile.email}
                         </div>
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1.5">
                           <Calendar className="h-4 w-4" />
                           Joined {format(new Date(profile.createdAt), 'MMM dd, yyyy')}
                         </div>
                         {profile.lastLoginAt && (
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-1.5">
                             <Clock className="h-4 w-4" />
                             Last login {format(new Date(profile.lastLoginAt), 'MMM dd, yyyy')}
                           </div>
@@ -314,7 +333,6 @@ export function ProfileClient() {
                       <Button
                         onClick={handleSaveProfile}
                         disabled={isSaving}
-                        className="bg-gradient-to-r from-teal-500 to-purple-500 hover:from-teal-600 hover:to-purple-600"
                       >
                         {isSaving ? (
                           <>
@@ -332,7 +350,6 @@ export function ProfileClient() {
                   ) : (
                     <Button
                       onClick={() => setIsEditing(true)}
-                      className="bg-gradient-to-r from-teal-500 to-purple-500 hover:from-teal-600 hover:to-purple-600"
                     >
                       <Edit2 className="mr-2 h-4 w-4" />
                       Edit Profile
@@ -351,50 +368,62 @@ export function ProfileClient() {
           transition={{ delay: 0.1 }}
           className="grid grid-cols-1 md:grid-cols-3 gap-6"
         >
-          <Card className="border-2 hover:shadow-lg transition-shadow dark:bg-gray-800/50 backdrop-blur">
+          <Card className="border border-border bg-card hover:shadow-xl hover:shadow-blue-500/10 dark:hover:border-blue-600/50 hover:scale-[1.02] transition-all duration-300 group">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Documents</p>
-                  <p className="text-3xl font-bold text-teal-500">
+                  <p className="text-sm text-muted-foreground mb-1">Documents</p>
+                  <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">
                     <AnimatedCounter value={profile._count.documents} />
                   </p>
                 </div>
-                <div className="h-14 w-14 rounded-full bg-teal-500/10 flex items-center justify-center">
-                  <FileText className="h-7 w-7 text-teal-500" />
+                <div className="h-14 w-14 rounded-xl bg-blue-100 dark:bg-blue-600/20 flex items-center justify-center border border-blue-200 dark:border-blue-600/30 group-hover:scale-110 transition-transform">
+                  <FileText className="h-7 w-7 text-blue-600 dark:text-blue-400" />
                 </div>
+              </div>
+              <div className="mt-4 flex items-center gap-1 text-xs text-muted-foreground">
+                <TrendingUp className="h-3 w-3 text-green-500" />
+                <span>Active documents</span>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-2 hover:shadow-lg transition-shadow dark:bg-gray-800/50 backdrop-blur">
+          <Card className="border border-border bg-card hover:shadow-xl hover:shadow-purple-500/10 dark:hover:border-purple-600/50 hover:scale-[1.02] transition-all duration-300 group">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Teams Joined</p>
-                  <p className="text-3xl font-bold text-purple-500">
+                  <p className="text-sm text-muted-foreground mb-1">Teams Joined</p>
+                  <p className="text-3xl font-bold text-purple-600 dark:text-purple-400">
                     <AnimatedCounter value={profile._count.teamMemberships} />
                   </p>
                 </div>
-                <div className="h-14 w-14 rounded-full bg-purple-500/10 flex items-center justify-center">
-                  <Users className="h-7 w-7 text-purple-500" />
+                <div className="h-14 w-14 rounded-xl bg-purple-100 dark:bg-purple-600/20 flex items-center justify-center border border-purple-200 dark:border-purple-600/30 group-hover:scale-110 transition-transform">
+                  <Users className="h-7 w-7 text-purple-600 dark:text-purple-400" />
                 </div>
+              </div>
+              <div className="mt-4 flex items-center gap-1 text-xs text-muted-foreground">
+                <Users className="h-3 w-3 text-purple-500" />
+                <span>Collaborations</span>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-2 hover:shadow-lg transition-shadow dark:bg-gray-800/50 backdrop-blur">
+          <Card className="border border-border bg-card hover:shadow-xl hover:shadow-pink-500/10 dark:hover:border-pink-600/50 hover:scale-[1.02] transition-all duration-300 group">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Teams Owned</p>
-                  <p className="text-3xl font-bold text-pink-500">
+                  <p className="text-sm text-muted-foreground mb-1">Teams Owned</p>
+                  <p className="text-3xl font-bold text-pink-600 dark:text-pink-400">
                     <AnimatedCounter value={profile._count.ownedTeams} />
                   </p>
                 </div>
-                <div className="h-14 w-14 rounded-full bg-pink-500/10 flex items-center justify-center">
-                  <Award className="h-7 w-7 text-pink-500" />
+                <div className="h-14 w-14 rounded-xl bg-pink-100 dark:bg-pink-600/20 flex items-center justify-center border border-pink-200 dark:border-pink-600/30 group-hover:scale-110 transition-transform">
+                  <Award className="h-7 w-7 text-pink-600 dark:text-pink-400" />
                 </div>
+              </div>
+              <div className="mt-4 flex items-center gap-1 text-xs text-muted-foreground">
+                <Shield className="h-3 w-3 text-pink-500" />
+                <span>Leadership roles</span>
               </div>
             </CardContent>
           </Card>
@@ -407,7 +436,7 @@ export function ProfileClient() {
           transition={{ delay: 0.2 }}
         >
           <Tabs defaultValue="activity" className="space-y-6">
-            <TabsList className="bg-white/60 dark:bg-gray-800/60 backdrop-blur">
+            <TabsList className="bg-muted">
               <TabsTrigger value="activity" className="gap-2">
                 <Activity className="h-4 w-4" />
                 Activity
@@ -420,7 +449,7 @@ export function ProfileClient() {
 
             {/* Activity Tab */}
             <TabsContent value="activity">
-              <Card className="dark:bg-gray-800/50 backdrop-blur">
+              <Card className="border border-border bg-card shadow-lg">
                 <CardHeader>
                   <CardTitle>Recent Activity</CardTitle>
                   <CardDescription>Your recent actions and updates</CardDescription>
@@ -433,16 +462,16 @@ export function ProfileClient() {
                           key={activity.id}
                           initial={{ opacity: 0, x: -20 }}
                           animate={{ opacity: 1, x: 0 }}
-                          className="flex items-start gap-4 p-4 rounded-lg bg-gray-50 dark:bg-gray-900/50 hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors"
+                          className="flex items-start gap-4 p-4 rounded-xl bg-muted/50 border border-border hover:bg-muted hover:shadow-md transition-all"
                         >
-                          <div className={cn('h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0', getActionColor(activity.action))}>
-                            {getActionIcon(activity.action)}
+                          <div className="h-10 w-10 rounded-lg bg-blue-100 dark:bg-blue-600/20 flex items-center justify-center border border-blue-200 dark:border-blue-600/30 flex-shrink-0">
+                            <span className="text-blue-600 dark:text-blue-400">{getActionIcon(activity.action)}</span>
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                            <p className="text-sm font-medium text-foreground">
                               {activity.action.replace(/_/g, ' ')}
                             </p>
-                            <p className="text-xs text-gray-500 mt-1">
+                            <p className="text-xs text-muted-foreground mt-1">
                               {format(new Date(activity.createdAt), 'MMM dd, yyyy HH:mm')}
                             </p>
                           </div>
@@ -450,9 +479,9 @@ export function ProfileClient() {
                       ))}
                     </div>
                   ) : (
-                    <div className="text-center py-12 text-gray-500">
-                      <Activity className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-                      <p>No recent activity</p>
+                    <div className="text-center py-12">
+                      <Activity className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
+                      <p className="text-muted-foreground">No recent activity</p>
                     </div>
                   )}
                 </CardContent>
@@ -461,16 +490,16 @@ export function ProfileClient() {
 
             {/* Settings Tab */}
             <TabsContent value="settings" className="space-y-6">
-              <Card className="dark:bg-gray-800/50 backdrop-blur">
+              <Card className="border border-border bg-card shadow-lg">
                 <CardHeader>
                   <CardTitle>Preferences</CardTitle>
                   <CardDescription>Manage your account preferences</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between p-4 rounded-xl bg-muted/50 border border-border">
                     <div className="space-y-0.5">
                       <Label>Email Notifications</Label>
-                      <p className="text-sm text-gray-500">Receive email notifications for updates</p>
+                      <p className="text-sm text-muted-foreground">Receive email notifications for updates</p>
                     </div>
                     <Switch checked={profile.notificationsEnabled} />
                   </div>
@@ -512,15 +541,15 @@ export function ProfileClient() {
                 </CardContent>
               </Card>
 
-              <Card className="dark:bg-gray-800/50 backdrop-blur border-red-200 dark:border-red-900">
+              <Card className="border border-destructive/50 bg-card shadow-lg">
                 <CardHeader>
-                  <CardTitle className="text-red-500">Danger Zone</CardTitle>
+                  <CardTitle className="text-destructive">Danger Zone</CardTitle>
                   <CardDescription>Irreversible actions</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <Button
                     variant="outline"
-                    className="w-full border-red-500 text-red-500 hover:bg-red-50 dark:hover:bg-red-950"
+                    className="w-full border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
                   >
                     <Trash2 className="mr-2 h-4 w-4" />
                     Delete Account

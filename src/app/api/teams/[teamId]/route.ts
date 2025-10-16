@@ -47,6 +47,8 @@ export async function GET(
                 email: true,
                 image: true,
                 lastLoginAt: true,
+                status: true,
+                statusMessage: true,
               }
             }
           },

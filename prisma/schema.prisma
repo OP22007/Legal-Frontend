@@ -28,6 +28,13 @@ enum UserRole {
   MODERATOR
 }
 
+enum UserStatus {
+  ONLINE
+  AWAY
+  BUSY
+  OFFLINE
+}
+
 enum UserPersona {
   STUDENT           // Educational focus, simpler explanations
   FREELANCER        // Contract emphasis, business terms focus
@@ -56,6 +63,9 @@ model User {
   // User preferences
   notificationsEnabled  Boolean     @default(true)
   dataRetentionDays     Int         @default(30) // Auto-delete documents after X days
+  status                UserStatus  @default(ONLINE)
+  statusMessage         String?     // Custom status message
+  lastStatusUpdate      DateTime?
 
   // Timestamps
   createdAt            DateTime    @default(now())
@@ -195,12 +205,89 @@ model Document {
   glossaryTerms        GlossaryTerm[]
   chatSessions         ChatSession[]
   exportHistory        ExportHistory[]
+  sharedWithTeams      TeamDocument[]
   
   @@map("documents")
   @@index([userId, createdAt])
   @@index([status])
   @@index([documentType])
   @@index([expiresAt])
+}
+
+// Team Document Collaboration
+enum TeamDocumentPermission {
+  VIEW          // Can only view
+  COMMENT       // Can view and comment
+  EDIT          // Can view, comment, and edit analysis
+  ADMIN         // Full control including deletion
+}
+
+model TeamDocument {
+  id                    String                   @id @default(cuid())
+  teamId                String
+  documentId            String
+  
+  // Sharing metadata
+  sharedById            String                   // User who shared
+  sharedAt              DateTime                 @default(now())
+  permission            TeamDocumentPermission   @default(VIEW)
+  
+  // Document metadata (denormalized for performance)
+  documentName          String
+  documentType          String
+  fileSize              Int
+  
+  // Collaboration features
+  canDownload           Boolean                  @default(true)
+  canShare              Boolean                  @default(false)
+  expiresAt             DateTime?                // Optional expiration for shared access
+  
+  // Activity tracking
+  lastAccessedAt        DateTime?
+  accessCount           Int                      @default(0)
+  
+  // Relations
+  team                  Team                     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  document              Document                 @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  comments              TeamDocumentComment[]
+  activity              TeamDocumentActivity[]
+  
+  @@unique([teamId, documentId])
+  @@map("team_documents")
+  @@index([teamId, sharedAt])
+  @@index([documentId])
+}
+
+model TeamDocumentComment {
+  id                    String        @id @default(cuid())
+  teamDocumentId        String
+  userId                String
+  content               String        @db.Text
+  resolved              Boolean       @default(false)
+  
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+  
+  teamDocument          TeamDocument  @relation(fields: [teamDocumentId], references: [id], onDelete: Cascade)
+  
+  @@map("team_document_comments")
+  @@index([teamDocumentId, createdAt])
+}
+
+model TeamDocumentActivity {
+  id                    String        @id @default(cuid())
+  teamDocumentId        String
+  userId                String
+  action                String        // VIEWED, DOWNLOADED, COMMENTED, SHARED, etc.
+  metadata              Json?
+  
+  createdAt             DateTime      @default(now())
+  
+  teamDocument          TeamDocument  @relation(fields: [teamDocumentId], references: [id], onDelete: Cascade)
+  
+  @@map("team_document_activity")
+  @@index([teamDocumentId, createdAt])
+  @@index([userId, createdAt])
 }
 
 // =====================================================
@@ -652,6 +739,7 @@ model Team {
   members             TeamMember[]
   invitations         TeamInvitation[]
   analytics           TeamAnalytics[]
+  documents           TeamDocument[]
 
   @@map("teams")
   @@index([ownerId])

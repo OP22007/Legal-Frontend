@@ -75,7 +75,7 @@ export default function Navbar() {
 					))}
 				</ul>
 
-				<div className="flex items-center gap-4">
+				<div className="flex items-center gap-2">
 					<ThemeToggle />
 					<LanguageToggle />
 					<NotificationBell />

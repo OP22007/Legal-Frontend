@@ -31,6 +31,7 @@ import {
   AlertCircle,
   Clock,
   RefreshCw,
+  Circle,
 } from 'lucide-react';
 import { format, formatDistanceToNow, isAfter, subHours } from 'date-fns';
 
@@ -77,6 +78,7 @@ import {
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { UserStatusSelector } from '@/components/UserStatusSelector';
 
 // Type Definitions
 interface TeamMember {
@@ -92,6 +94,8 @@ interface TeamMember {
     lastName: string | null;
     email: string;
     image: string | null;
+    status?: string;
+    statusMessage?: string | null;
   };
 }
 
@@ -168,6 +172,14 @@ export function TeamDetailClient({ teamId }: { teamId: string }) {
   const [activeTab, setActiveTab] = useState('members');
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Team documents state
+  const [teamDocuments, setTeamDocuments] = useState<any[]>([]);
+  const [userDocuments, setUserDocuments] = useState<any[]>([]);
+  const [isLoadingDocuments, setIsLoadingDocuments] = useState(false);
+  const [showShareDialog, setShowShareDialog] = useState(false);
+  const [selectedDocToShare, setSelectedDocToShare] = useState<string>('');
+  const [sharePermission, setSharePermission] = useState('VIEW');
+
   // Modal states
   const [showInviteDialog, setShowInviteDialog] = useState(false);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
@@ -210,6 +222,104 @@ export function TeamDetailClient({ teamId }: { teamId: string }) {
       toast.error('Failed to load team details');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Fetch team documents
+  const fetchTeamDocuments = async () => {
+    try {
+      setIsLoadingDocuments(true);
+      const response = await fetch(`/api/teams/${teamId}/documents`);
+      if (response.ok) {
+        const data = await response.json();
+        setTeamDocuments(data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch team documents:', error);
+    } finally {
+      setIsLoadingDocuments(false);
+    }
+  };
+
+  // Fetch user's documents for sharing
+  const fetchUserDocuments = async () => {
+    try {
+      const response = await fetch('/api/documents');
+      if (response.ok) {
+        const data = await response.json();
+        setUserDocuments(data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch user documents:', error);
+    }
+  };
+
+  // Load documents when Documents tab is active
+  useEffect(() => {
+    if (activeTab === 'documents' && session) {
+      fetchTeamDocuments();
+      fetchUserDocuments();
+    }
+  }, [activeTab, session, teamId]);
+
+  // Share document with team
+  const handleShareDocument = async () => {
+    if (!selectedDocToShare) {
+      toast.error('Please select a document');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(`/api/teams/${teamId}/documents`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          documentId: selectedDocToShare,
+          permission: sharePermission,
+          canDownload: true,
+          canShare: false,
+        }),
+      });
+
+      if (response.ok) {
+        toast.success('Document shared successfully!');
+        setShowShareDialog(false);
+        setSelectedDocToShare('');
+        setSharePermission('VIEW');
+        fetchTeamDocuments();
+      } else {
+        const error = await response.json();
+        toast.error(error.error || 'Failed to share document');
+      }
+    } catch (error) {
+      console.error('Failed to share document:', error);
+      toast.error('Failed to share document');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Remove document from team
+  const handleRemoveDocument = async (teamDocumentId: string) => {
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(`/api/teams/${teamId}/documents?teamDocumentId=${teamDocumentId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        toast.success('Document removed from team');
+        fetchTeamDocuments();
+      } else {
+        const error = await response.json();
+        toast.error(error.error || 'Failed to remove document');
+      }
+    } catch (error) {
+      console.error('Failed to remove document:', error);
+      toast.error('Failed to remove document');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -451,6 +561,21 @@ export function TeamDetailClient({ teamId }: { teamId: string }) {
     }
   };
 
+  const getStatusColor = (status?: string) => {
+    switch (status) {
+      case 'ONLINE':
+        return 'text-green-500 fill-green-500';
+      case 'AWAY':
+        return 'text-yellow-500 fill-yellow-500';
+      case 'BUSY':
+        return 'text-red-500 fill-red-500';
+      case 'OFFLINE':
+        return 'text-gray-400 fill-gray-400';
+      default:
+        return 'text-gray-400 fill-gray-400';
+    }
+  };
+
   // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -492,8 +617,45 @@ export function TeamDetailClient({ teamId }: { teamId: string }) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-warm-gray via-white to-blue-50 dark:from-charcoal dark:via-gray-900 dark:to-gray-800">
-      <div className="container mx-auto p-6 lg:p-8 max-w-7xl">
+    <div className="min-h-screen bg-gradient-to-br from-warm-gray via-white to-blue-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 relative overflow-hidden">
+      {/* Light Theme Background Pattern */}
+      <div className="absolute inset-0 opacity-[0.1] dark:opacity-0 pointer-events-none">
+        <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" className="absolute inset-0">
+          <defs>
+            <pattern id="hexagons" x="0" y="0" width="60" height="52" patternUnits="userSpaceOnUse">
+              <polygon points="30,2 58,16 58,36 30,50 2,36 2,16" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-gray-600"/>
+            </pattern>
+            <pattern id="circuits" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse">
+              <path d="M10,10 L90,10 M50,10 L50,90 M10,50 L90,50" stroke="currentColor" strokeWidth="0.3" className="text-gray-500"/>
+              <circle cx="50" cy="50" r="2" fill="currentColor" className="text-gray-500"/>
+              <circle cx="10" cy="10" r="1" fill="currentColor" className="text-gray-500"/>
+              <circle cx="90" cy="10" r="1" fill="currentColor" className="text-gray-500"/>
+              <circle cx="10" cy="90" r="1" fill="currentColor" className="text-gray-500"/>
+              <circle cx="90" cy="90" r="1" fill="currentColor" className="text-gray-500"/>
+            </pattern>
+            <pattern id="waves" x="0" y="0" width="200" height="100" patternUnits="userSpaceOnUse">
+              <path d="M0,50 Q50,0 100,50 T200,50" stroke="currentColor" strokeWidth="0.5" fill="none" className="text-gray-400"/>
+              <path d="M0,70 Q50,20 100,70 T200,70" stroke="currentColor" strokeWidth="0.3" fill="none" className="text-gray-400"/>
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#hexagons)"/>
+          <rect width="100%" height="100%" fill="url(#circuits)"/>
+          <rect width="100%" height="100%" fill="url(#waves)"/>
+        </svg>
+      </div>
+
+      {/* Dark Theme Background */}
+      <div className="absolute inset-0 dark:block hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-[#0f1115] to-[#1a1d23]"></div>
+        <div
+          className="absolute inset-0"
+          style={{
+            background: 'radial-gradient(circle at 20% 30%, rgba(65,88,208,0.1), transparent 60%)'
+          }}
+        ></div>
+      </div>
+
+      <div className="container mx-auto p-6 lg:p-8 max-w-7xl relative z-10">
         {/* Back Button */}
         <motion.div
           initial={{ opacity: 0, x: -20 }}
@@ -516,7 +678,7 @@ export function TeamDetailClient({ teamId }: { teamId: string }) {
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <Card className="relative overflow-hidden border-2 dark:bg-gray-800/50 backdrop-blur">
+          <Card className="relative overflow-hidden border-2 dark:bg-[rgba(255,255,255,0.04)] dark:border-[rgba(255,255,255,0.1)] dark:backdrop-blur-[12px] dark:rounded-xl dark:shadow-[0_4px_15px_rgba(0,0,0,0.4)]">
             <div
               className="absolute top-0 left-0 right-0 h-2"
               style={{ backgroundColor: team.color }}
@@ -525,6 +687,10 @@ export function TeamDetailClient({ teamId }: { teamId: string }) {
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
+                    {/* Team Logo/Avatar */}
+                    <div className="flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-teal-500 to-purple-500 text-white font-bold text-lg border-2 border-white dark:border-gray-700 shadow-lg">
+                      {team.name.charAt(0).toUpperCase()}
+                    </div>
                     <CardTitle className="text-3xl">{team.name}</CardTitle>
                     <Badge
                       variant="outline"
@@ -547,12 +713,18 @@ export function TeamDetailClient({ teamId }: { teamId: string }) {
                       {team.members.length} / {team.maxMembers} members
                     </div>
                   </div>
+                  
+                  {/* My Status for this Team */}
+                  <div className="mt-4">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">My Status in Team</p>
+                    <UserStatusSelector />
+                  </div>
                 </div>
                 {canManageMembers && (
                   <div className="flex gap-2">
                     <Button
                       onClick={() => setShowInviteDialog(true)}
-                      className="bg-gradient-to-r from-teal-500 to-blue-500 hover:from-teal-600 hover:to-blue-600"
+                      className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white border-none rounded-lg px-4 py-2 shadow-[0_0_12px_rgba(99,102,241,0.4)] hover:shadow-[0_0_18px_rgba(99,102,241,0.6)] transition-all duration-200 hover:scale-105"
                     >
                       <UserPlus className="mr-2 h-4 w-4" />
                       Invite Members
@@ -607,6 +779,7 @@ export function TeamDetailClient({ teamId }: { teamId: string }) {
             value={stats.documentsReviewed}
             color="orange"
             variants={itemVariants}
+            showEmptyState={stats.documentsReviewed === 0}
           />
         </motion.div>
 
@@ -617,21 +790,40 @@ export function TeamDetailClient({ teamId }: { teamId: string }) {
           transition={{ delay: 0.2 }}
         >
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="bg-white/60 dark:bg-gray-800/60 backdrop-blur">
-              <TabsTrigger value="members" className="gap-2">
+            <TabsList className="bg-white/60 dark:bg-gray-800/60 backdrop-blur border border-gray-200 dark:border-gray-700">
+              <TabsTrigger
+                value="members"
+                className="gap-2 relative data-[state=active]:text-indigo-600 dark:data-[state=active]:text-indigo-400 transition-all duration-200 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-gradient-to-r after:from-indigo-500 after:to-pink-500 after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-200"
+              >
                 <Users className="h-4 w-4" />
                 Members ({team.members.length})
               </TabsTrigger>
-              <TabsTrigger value="invitations" className="gap-2">
+              <TabsTrigger
+                value="documents"
+                className="gap-2 relative data-[state=active]:text-indigo-600 dark:data-[state=active]:text-indigo-400 transition-all duration-200 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-gradient-to-r after:from-indigo-500 after:to-pink-500 after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-200"
+              >
+                <FileText className="h-4 w-4" />
+                Documents ({teamDocuments.length})
+              </TabsTrigger>
+              <TabsTrigger
+                value="invitations"
+                className="gap-2 relative data-[state=active]:text-indigo-600 dark:data-[state=active]:text-indigo-400 transition-all duration-200 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-gradient-to-r after:from-indigo-500 after:to-pink-500 after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-200"
+              >
                 <Mail className="h-4 w-4" />
                 Invitations ({pendingInvitations.length})
               </TabsTrigger>
-              <TabsTrigger value="analytics" className="gap-2">
+              <TabsTrigger
+                value="analytics"
+                className="gap-2 relative data-[state=active]:text-indigo-600 dark:data-[state=active]:text-indigo-400 transition-all duration-200 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-gradient-to-r after:from-indigo-500 after:to-pink-500 after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-200"
+              >
                 <BarChart3 className="h-4 w-4" />
                 Analytics
               </TabsTrigger>
               {isOwner && (
-                <TabsTrigger value="settings" className="gap-2">
+                <TabsTrigger
+                  value="settings"
+                  className="gap-2 relative data-[state=active]:text-indigo-600 dark:data-[state=active]:text-indigo-400 transition-all duration-200 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-gradient-to-r after:from-indigo-500 after:to-pink-500 after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-200"
+                >
                   <Settings className="h-4 w-4" />
                   Settings
                 </TabsTrigger>
@@ -673,6 +865,7 @@ export function TeamDetailClient({ teamId }: { teamId: string }) {
                       onRemove={() => setMemberToRemove(member)}
                       getRoleIcon={getRoleIcon}
                       getRoleBadgeColor={getRoleBadgeColor}
+                      getStatusColor={getStatusColor}
                       variants={itemVariants}
                     />
                   ))
@@ -684,6 +877,161 @@ export function TeamDetailClient({ teamId }: { teamId: string }) {
                   />
                 )}
               </motion.div>
+            </TabsContent>
+
+            {/* Documents Tab */}
+            <TabsContent value="documents" className="space-y-4">
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Documents shared with this team
+                </p>
+                <Button
+                  onClick={() => setShowShareDialog(true)}
+                  className="bg-gradient-to-r from-teal-500 to-blue-500 hover:from-teal-600 hover:to-blue-600"
+                >
+                  <FileText className="mr-2 h-4 w-4" />
+                  Share Document
+                </Button>
+              </div>
+
+              {isLoadingDocuments ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {[...Array(4)].map((_, i) => (
+                    <Skeleton key={i} className="h-40 rounded-xl" />
+                  ))}
+                </div>
+              ) : (
+                <motion.div
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                  className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                >
+                  {teamDocuments.length > 0 ? (
+                    teamDocuments.map((teamDoc) => (
+                      <motion.div
+                        key={teamDoc.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                      >
+                        <Card className="group hover:shadow-lg transition-all duration-300 dark:bg-gray-800/50 backdrop-blur border hover:border-teal-500/30">
+                          <CardContent className="p-5">
+                            <div className="flex items-start justify-between mb-3">
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-semibold text-lg mb-1 truncate bg-gradient-to-r from-teal-500 to-blue-500 bg-clip-text text-transparent">
+                                  {teamDoc.documentName}
+                                </h4>
+                                <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
+                                  <Badge variant="outline" className="text-xs">
+                                    {teamDoc.documentType}
+                                  </Badge>
+                                  <span>•</span>
+                                  <span>{(teamDoc.fileSize / 1024 / 1024).toFixed(2)} MB</span>
+                                  <span>•</span>
+                                  <span>{format(new Date(teamDoc.sharedAt), 'MMM dd, yyyy')}</span>
+                                </div>
+                                <Badge
+                                  variant="outline"
+                                  className={cn(
+                                    'gap-1 text-xs',
+                                    teamDoc.permission === 'ADMIN' && 'border-purple-500/30 text-purple-500',
+                                    teamDoc.permission === 'EDIT' && 'border-blue-500/30 text-blue-500',
+                                    teamDoc.permission === 'COMMENT' && 'border-green-500/30 text-green-500',
+                                    teamDoc.permission === 'VIEW' && 'border-gray-500/30 text-gray-500'
+                                  )}
+                                >
+                                  {teamDoc.permission}
+                                </Badge>
+                              </div>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <MoreVertical className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => router.push(`/analysis/${teamDoc.documentId}`)}>
+                                    <Eye className="h-4 w-4 mr-2" />
+                                    View Analysis
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => router.push(`/chat/${teamDoc.documentId}`)}>
+                                    <Mail className="h-4 w-4 mr-2" />
+                                    Chat with AI
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  {(canManageMembers || teamDoc.sharedById === session?.user?.email) && (
+                                    <DropdownMenuItem
+                                      onClick={() => handleRemoveDocument(teamDoc.id)}
+                                      className="text-red-500"
+                                    >
+                                      <Trash2 className="h-4 w-4 mr-2" />
+                                      Remove from Team
+                                    </DropdownMenuItem>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+
+                            <div className="flex items-center gap-4 text-xs text-gray-500 mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                              <div className="flex items-center gap-1">
+                                <Users className="h-3 w-3" />
+                                {teamDoc._count.comments} comments
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Activity className="h-3 w-3" />
+                                {teamDoc._count.activity} activities
+                              </div>
+                              {teamDoc.lastAccessedAt && (
+                                <div className="flex items-center gap-1">
+                                  <Clock className="h-3 w-3" />
+                                  {formatDistanceToNow(new Date(teamDoc.lastAccessedAt), { addSuffix: true })}
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="flex gap-2 mt-4">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="flex-1"
+                                onClick={() => router.push(`/analysis/${teamDoc.documentId}`)}
+                              >
+                                View Analysis
+                              </Button>
+                              <Button
+                                size="sm"
+                                className="flex-1 bg-gradient-to-r from-teal-500 to-blue-500"
+                                onClick={() => router.push(`/chat/${teamDoc.documentId}`)}
+                              >
+                                Chat with AI
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </motion.div>
+                    ))
+                  ) : (
+                    <div className="col-span-full">
+                      <EmptyState
+                        icon={
+                          <svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-gray-300 dark:text-gray-600">
+                            <rect x="20" y="40" width="80" height="50" rx="8" fill="currentColor" opacity="0.1"/>
+                            <rect x="30" y="50" width="60" height="4" rx="2" fill="currentColor" opacity="0.3"/>
+                            <rect x="30" y="60" width="40" height="4" rx="2" fill="currentColor" opacity="0.3"/>
+                            <rect x="30" y="70" width="50" height="4" rx="2" fill="currentColor" opacity="0.3"/>
+                            <circle cx="85" cy="75" r="8" fill="currentColor" opacity="0.2"/>
+                            <path d="M78 75 L82 79 L92 69" stroke="currentColor" strokeWidth="2" opacity="0.4"/>
+                            <rect x="35" y="25" width="50" height="8" rx="4" fill="currentColor" opacity="0.2"/>
+                            <text x="60" y="31" textAnchor="middle" fontSize="6" fill="currentColor" opacity="0.5">DOCS</text>
+                          </svg>
+                        }
+                        title="No documents shared yet"
+                        description="Share your documents with the team to collaborate and start reviewing together!"
+                      />
+                    </div>
+                  )}
+                </motion.div>
+              )}
             </TabsContent>
 
             {/* Invitations Tab */}
@@ -816,6 +1164,117 @@ export function TeamDetailClient({ teamId }: { teamId: string }) {
                 <>
                   <Send className="mr-2 h-4 w-4" />
                   Send Invitation
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Share Document Dialog */}
+      <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="text-2xl bg-gradient-to-r from-teal-500 to-purple-500 bg-clip-text text-transparent">
+              Share Document with Team
+            </DialogTitle>
+            <DialogDescription>
+              Choose a document from your library to share with this team
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="document-select">Select Document *</Label>
+              <Select value={selectedDocToShare} onValueChange={setSelectedDocToShare}>
+                <SelectTrigger id="document-select">
+                  <SelectValue placeholder="Choose a document..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {userDocuments.length > 0 ? (
+                    userDocuments.map((doc) => (
+                      <SelectItem key={doc.id} value={doc.id}>
+                        <div className="flex items-center gap-2">
+                          <FileText className="h-4 w-4" />
+                          <span className="truncate">{doc.originalFileName}</span>
+                        </div>
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="no-docs" disabled>
+                      No documents available
+                    </SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="permission-select">Permission Level *</Label>
+              <Select value={sharePermission} onValueChange={setSharePermission}>
+                <SelectTrigger id="permission-select">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="VIEW">
+                    <div className="flex items-center gap-2">
+                      <Eye className="h-4 w-4 text-gray-500" />
+                      <div>
+                        <div className="font-medium">View Only</div>
+                        <div className="text-xs text-gray-500">Can only view the document</div>
+                      </div>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="COMMENT">
+                    <div className="flex items-center gap-2">
+                      <Mail className="h-4 w-4 text-green-500" />
+                      <div>
+                        <div className="font-medium">Comment</div>
+                        <div className="text-xs text-gray-500">Can view and add comments</div>
+                      </div>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="EDIT">
+                    <div className="flex items-center gap-2">
+                      <Edit2 className="h-4 w-4 text-blue-500" />
+                      <div>
+                        <div className="font-medium">Edit</div>
+                        <div className="text-xs text-gray-500">Can view, comment, and edit analysis</div>
+                      </div>
+                    </div>
+                  </SelectItem>
+                  {isOwner && (
+                    <SelectItem value="ADMIN">
+                      <div className="flex items-center gap-2">
+                        <Shield className="h-4 w-4 text-purple-500" />
+                        <div>
+                          <div className="font-medium">Admin</div>
+                          <div className="text-xs text-gray-500">Full control including deletion</div>
+                        </div>
+                      </div>
+                    </SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowShareDialog(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleShareDocument}
+              disabled={isSubmitting || !selectedDocToShare}
+              className="bg-gradient-to-r from-teal-500 to-blue-500 hover:from-teal-600 hover:to-blue-600"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Sharing...
+                </>
+              ) : (
+                <>
+                  <FileText className="mr-2 h-4 w-4" />
+                  Share Document
                 </>
               )}
             </Button>
@@ -987,30 +1446,102 @@ export function TeamDetailClient({ teamId }: { teamId: string }) {
 }
 
 // Sub-components
-const StatsCard = ({ icon, label, value, color, subtitle, variants }: any) => {
-  const colorClasses = {
-    blue: 'bg-blue-500/10 text-blue-500 dark:bg-blue-500/20',
-    green: 'bg-green-500/10 text-green-500 dark:bg-green-500/20',
-    purple: 'bg-purple-500/10 text-purple-500 dark:bg-purple-500/20',
-    orange: 'bg-orange-500/10 text-orange-500 dark:bg-orange-500/20',
+const StatsCard = ({ icon, label, value, color, subtitle, variants, showEmptyState }: any) => {
+  const getColorConfig = (color: string) => {
+    switch (color) {
+      case 'blue':
+        return {
+          bg: 'bg-cyan-500/10 dark:bg-cyan-500/20',
+          text: 'text-cyan-600 dark:text-cyan-400',
+          glow: 'shadow-cyan-500/40',
+          iconGlow: 'drop-shadow-[0_0_8px_rgba(6,182,212,0.6)]'
+        };
+      case 'green':
+        return {
+          bg: 'bg-lime-500/10 dark:bg-lime-500/20',
+          text: 'text-lime-600 dark:text-lime-400',
+          glow: 'shadow-lime-500/40',
+          iconGlow: 'drop-shadow-[0_0_8px_rgba(132,204,22,0.6)]'
+        };
+      case 'purple':
+        return {
+          bg: 'bg-purple-500/10 dark:bg-purple-500/20',
+          text: 'text-purple-600 dark:text-purple-400',
+          glow: 'shadow-purple-500/40',
+          iconGlow: 'drop-shadow-[0_0_8px_rgba(168,85,247,0.6)]'
+        };
+      case 'orange':
+        return {
+          bg: 'bg-orange-500/10 dark:bg-orange-500/20',
+          text: 'text-orange-600 dark:text-orange-400',
+          glow: 'shadow-orange-500/40',
+          iconGlow: 'drop-shadow-[0_0_8px_rgba(251,146,60,0.6)]'
+        };
+      default:
+        return {
+          bg: 'bg-gray-500/10 dark:bg-gray-500/20',
+          text: 'text-gray-600 dark:text-gray-400',
+          glow: 'shadow-gray-500/40',
+          iconGlow: 'drop-shadow-[0_0_8px_rgba(107,114,128,0.6)]'
+        };
+    }
   };
+
+  const colorConfig = getColorConfig(color);
+
+  if (showEmptyState) {
+    return (
+      <motion.div variants={variants}>
+        <Card className="relative overflow-hidden group transition-all duration-200 hover:scale-[1.03] dark:bg-[rgba(255,255,255,0.04)] dark:border-[rgba(255,255,255,0.1)] dark:backdrop-blur-[12px] dark:shadow-[0_4px_15px_rgba(0,0,0,0.4)] hover:dark:shadow-[0_0_15px_rgba(255,255,255,0.05)] hover:dark:border-[rgba(255,255,255,0.15)] border-2 hover:border-teal-500/30">
+          <CardContent className="p-6 flex flex-col items-center justify-center text-center min-h-[140px]">
+            <motion.div
+              animate={{ y: [0, -5, 0] }}
+              transition={{ repeat: Infinity, duration: 3, ease: 'easeInOut' }}
+              className="mb-3"
+            >
+              <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-orange-400 dark:text-orange-500">
+                <rect x="8" y="16" width="32" height="20" rx="4" fill="currentColor" opacity="0.1"/>
+                <rect x="12" y="20" width="24" height="2" rx="1" fill="currentColor" opacity="0.4"/>
+                <rect x="12" y="24" width="16" height="2" rx="1" fill="currentColor" opacity="0.4"/>
+                <rect x="12" y="28" width="20" height="2" rx="1" fill="currentColor" opacity="0.4"/>
+                <circle cx="34" cy="30" r="4" fill="currentColor" opacity="0.3"/>
+                <path d="M31 30 L33 32 L37 28" stroke="currentColor" strokeWidth="1.5" opacity="0.6"/>
+                <rect x="16" y="10" width="16" height="4" rx="2" fill="currentColor" opacity="0.2"/>
+                <text x="24" y="13" textAnchor="middle" fontSize="3" fill="currentColor" opacity="0.5">DOCS</text>
+              </svg>
+            </motion.div>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">{label}</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+              <AnimatedCounter value={value} />
+            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-500 italic">
+              "No documents reviewed yet!"
+            </p>
+          </CardContent>
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-teal-500 to-blue-500 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300" />
+        </Card>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div variants={variants}>
-      <Card className="relative overflow-hidden group hover:shadow-xl transition-all duration-300 dark:bg-gray-800/50 backdrop-blur border-2 hover:border-teal-500/30">
+      <Card className="relative overflow-hidden group transition-all duration-200 hover:scale-[1.03] dark:bg-[rgba(255,255,255,0.04)] dark:border-[rgba(255,255,255,0.1)] dark:backdrop-blur-[12px] dark:shadow-[0_4px_15px_rgba(0,0,0,0.4)] hover:dark:shadow-[0_0_15px_rgba(255,255,255,0.05)] hover:dark:border-[rgba(255,255,255,0.15)] border-2 hover:border-teal-500/30">
         <CardContent className="p-6">
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{label}</p>
-              <p className="text-3xl font-bold">
+              <p className="text-3xl font-bold text-gray-900 dark:text-white">
                 <AnimatedCounter value={value} />
               </p>
               {subtitle && (
                 <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">{subtitle}</p>
               )}
             </div>
-            <div className={cn('p-3 rounded-xl', colorClasses[color as keyof typeof colorClasses])}>
-              {icon}
+            <div className={cn('p-3 rounded-xl transition-all duration-200', colorConfig.bg, colorConfig.iconGlow)}>
+              <div className={cn('transition-all duration-200', colorConfig.text)}>
+                {icon}
+              </div>
             </div>
           </div>
         </CardContent>
@@ -1020,13 +1551,28 @@ const StatsCard = ({ icon, label, value, color, subtitle, variants }: any) => {
   );
 };
 
-const MemberCard = ({ member, canManage, isOwner, currentUserRole, onChangeRole, onRemove, getRoleIcon, getRoleBadgeColor, variants }: any) => {
+const MemberCard = ({ member, canManage, isOwner, currentUserRole, onChangeRole, onRemove, getRoleIcon, getRoleBadgeColor, getStatusColor, variants }: any) => {
   const isActive = member.lastActiveAt && isAfter(new Date(member.lastActiveAt), subHours(new Date(), 24));
   const canModifyThisMember = canManage && member.role !== 'OWNER' && member.user.id !== member.id;
 
+  const getRoleGradient = (role: string) => {
+    switch (role) {
+      case 'OWNER':
+        return 'bg-gradient-to-r from-purple-500 to-purple-600';
+      case 'ADMIN':
+        return 'bg-gradient-to-r from-blue-500 to-blue-600';
+      case 'MEMBER':
+        return 'bg-gradient-to-r from-green-500 to-green-600';
+      case 'VIEWER':
+        return 'bg-gradient-to-r from-gray-500 to-gray-600';
+      default:
+        return 'bg-gradient-to-r from-gray-500 to-gray-600';
+    }
+  };
+
   return (
     <motion.div variants={variants}>
-      <Card className="group hover:shadow-lg transition-all duration-300 dark:bg-gray-800/50 backdrop-blur border hover:border-teal-500/30">
+      <Card className="group hover:shadow-lg transition-all duration-300 dark:bg-[rgba(255,255,255,0.03)] dark:border-[rgba(255,255,255,0.08)] dark:backdrop-blur-[12px] dark:rounded-xl hover:dark:border-[rgba(255,255,255,0.12)] border hover:border-teal-500/30">
         <CardContent className="p-4">
           <div className="flex items-center gap-4">
             <div className="relative">
@@ -1037,21 +1583,33 @@ const MemberCard = ({ member, canManage, isOwner, currentUserRole, onChangeRole,
                 </AvatarFallback>
               </Avatar>
               {isActive && (
-                <div className="absolute bottom-0 right-0 h-3 w-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-800" />
+                <div className="absolute bottom-0 right-0 h-3 w-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-800 shadow-[0_0_8px_rgba(34,197,94,0.8)]"></div>
               )}
             </div>
 
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
-                <h4 className="font-semibold truncate">
+                <h4 className="font-semibold truncate text-gray-900 dark:text-white">
                   {member.user.firstName} {member.user.lastName}
                 </h4>
-                <Badge variant="outline" className={cn('gap-1', getRoleBadgeColor(member.role))}>
-                  {getRoleIcon(member.role)}
+                <div className={cn('px-2 py-1 rounded-full text-xs font-medium text-white flex items-center gap-1', getRoleGradient(member.role))}>
+                  {member.role === 'OWNER' && <Crown className="h-3 w-3" />}
+                  {member.role === 'ADMIN' && <Shield className="h-3 w-3" />}
+                  {member.role === 'MEMBER' && <Users className="h-3 w-3" />}
+                  {member.role === 'VIEWER' && <Eye className="h-3 w-3" />}
                   {member.role}
-                </Badge>
+                </div>
+                {member.user.status && (
+                  <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+                    <Circle className={cn('h-2 w-2', getStatusColor(member.user.status))} />
+                    <span className="text-xs text-gray-600 dark:text-gray-400">{member.user.status}</span>
+                  </div>
+                )}
               </div>
               <p className="text-sm text-gray-600 dark:text-gray-400 truncate">{member.user.email}</p>
+              {member.user.statusMessage && (
+                <p className="text-xs text-gray-500 italic mt-1 truncate">"{member.user.statusMessage}"</p>
+              )}
               <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
                 <div className="flex items-center gap-1">
                   <FileText className="h-3 w-3" />

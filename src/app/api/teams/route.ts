@@ -58,11 +58,16 @@ export async function GET(req: NextRequest) {
       orderBy: { createdAt: 'desc' }
     });
 
-    // Fetch teams where user is a member
+    // Fetch teams where user is a member (excluding owned teams)
     const memberTeams = await prisma.teamMember.findMany({
       where: {
         userId: user.id,
-        status: 'ACTIVE'
+        status: 'ACTIVE',
+        team: {
+          ownerId: {
+            not: user.id // Exclude teams where user is the owner
+          }
+        }
       },
       include: {
         team: {

@@ -182,12 +182,7 @@ export function TeamsClient() {
 
   const itemVariants = {
     hidden: { y: 20, opacity: 0, scale: 0.95 },
-    visible: {
-      y: 0,
-      opacity: 1,
-      scale: 1,
-      transition: { type: 'spring', stiffness: 100 }
-    }
+    visible: { y: 0, opacity: 1, scale: 1 }
   };
 
   return (
@@ -344,7 +339,7 @@ const TeamCard = ({ team, variants, onCardClick, getRoleIcon, getRoleBadgeColor 
   const totalDocuments = team.members.reduce((sum: number, m: TeamMember) => sum + m.documentsReviewed, 0);
 
   return (
-    <motion.div variants={variants} className="group">
+    <motion.div variants={variants} className="group" transition={{ type: 'spring', stiffness: 100 }}>
       <Card
         className="relative overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-2xl hover:scale-105 border-2 border-transparent hover:border-purple-400/50 bg-gradient-to-br from-white to-slate-50 dark:from-gray-900 dark:to-slate-900 backdrop-blur-sm"
         onClick={onCardClick}
