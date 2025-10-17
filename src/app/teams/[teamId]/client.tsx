@@ -79,6 +79,8 @@ import {
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { UserStatusSelector } from '@/components/UserStatusSelector';
+import { TranslatedText } from "@/components/TranslatedText";
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 // Type Definitions
 interface TeamMember {
@@ -165,7 +167,7 @@ const AnimatedCounter = ({ value, duration = 1000 }: { value: number; duration?:
 // Main Component
 export function TeamDetailClient({ teamId }: { teamId: string }) {
   const router = useRouter();
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
 
   const [team, setTeam] = useState<TeamData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -197,12 +199,16 @@ export function TeamDetailClient({ teamId }: { teamId: string }) {
   const [newRole, setNewRole] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Memoize session status to prevent unnecessary re-renders
+  const isSessionLoading = status === 'loading';
+  const hasValidSession = session?.user?.email && status === 'authenticated';
+
   // Fetch team data
   useEffect(() => {
-    if (session) {
+    if (hasValidSession && !isSessionLoading) {
       fetchTeamData();
     }
-  }, [session, teamId]);
+  }, [hasValidSession, isSessionLoading, teamId]);
 
   const fetchTeamData = async () => {
     try {
@@ -256,11 +262,11 @@ export function TeamDetailClient({ teamId }: { teamId: string }) {
 
   // Load documents when Documents tab is active
   useEffect(() => {
-    if (activeTab === 'documents' && session) {
+    if (activeTab === 'documents' && hasValidSession && !isSessionLoading) {
       fetchTeamDocuments();
       fetchUserDocuments();
     }
-  }, [activeTab, session, teamId]);
+  }, [activeTab, hasValidSession, isSessionLoading, teamId]);
 
   // Share document with team
   const handleShareDocument = async () => {
@@ -594,6 +600,27 @@ export function TeamDetailClient({ teamId }: { teamId: string }) {
     }
   };
 
+  if (isSessionLoading) {
+    return <LoadingSkeleton />;
+  }
+
+  if (!hasValidSession) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold mb-2">Authentication Required</h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">
+            You need to be logged in to view this team.
+          </p>
+          <Button onClick={() => router.push('/auth/login')}>
+            Sign In
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   if (isLoading) {
     return <LoadingSkeleton />;
   }
@@ -603,13 +630,13 @@ export function TeamDetailClient({ teamId }: { teamId: string }) {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold mb-2">Team Not Found</h2>
+          <h2 className="text-2xl font-bold mb-2"><TranslatedText text="Team Not Found" /></h2>
           <p className="text-gray-600 dark:text-gray-400 mb-4">
-            The team you're looking for doesn't exist or you don't have access to it.
+            <TranslatedText text="The team you're looking for doesn't exist or you don't have access to it." />
           </p>
           <Button onClick={() => router.push('/teams')}>
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Teams
+            <TranslatedText text="Back to Teams" />
           </Button>
         </div>
       </div>
@@ -619,7 +646,7 @@ export function TeamDetailClient({ teamId }: { teamId: string }) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-warm-gray via-white to-blue-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 relative overflow-hidden">
       {/* Light Theme Background Pattern */}
-      <div className="absolute inset-0 opacity-[0.1] dark:opacity-0 pointer-events-none">
+      <div className="absolute inset-0 opacity-[0.2] dark:opacity-0 pointer-events-none">
         <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" className="absolute inset-0">
           <defs>
             <pattern id="hexagons" x="0" y="0" width="60" height="52" patternUnits="userSpaceOnUse">
@@ -668,7 +695,7 @@ export function TeamDetailClient({ teamId }: { teamId: string }) {
             className="gap-2"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to Teams
+            <TranslatedText text="Back to Teams" />
           </Button>
         </motion.div>
 
@@ -716,7 +743,7 @@ export function TeamDetailClient({ teamId }: { teamId: string }) {
                   
                   {/* My Status for this Team */}
                   <div className="mt-4">
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">My Status in Team</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-2"><TranslatedText text="My Status in Team" /></p>
                     <UserStatusSelector />
                   </div>
                 </div>
@@ -727,7 +754,7 @@ export function TeamDetailClient({ teamId }: { teamId: string }) {
                       className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white border-none rounded-lg px-4 py-2 shadow-[0_0_12px_rgba(99,102,241,0.4)] hover:shadow-[0_0_18px_rgba(99,102,241,0.6)] transition-all duration-200 hover:scale-105"
                     >
                       <UserPlus className="mr-2 h-4 w-4" />
-                      Invite Members
+                      <TranslatedText text="Invite Members" />
                     </Button>
                     {isOwner && (
                       <Button
@@ -796,28 +823,28 @@ export function TeamDetailClient({ teamId }: { teamId: string }) {
                 className="gap-2 relative data-[state=active]:text-indigo-600 dark:data-[state=active]:text-indigo-400 transition-all duration-200 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-gradient-to-r after:from-indigo-500 after:to-pink-500 after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-200"
               >
                 <Users className="h-4 w-4" />
-                Members ({team.members.length})
+                <TranslatedText text="Members" />
               </TabsTrigger>
               <TabsTrigger
                 value="documents"
                 className="gap-2 relative data-[state=active]:text-indigo-600 dark:data-[state=active]:text-indigo-400 transition-all duration-200 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-gradient-to-r after:from-indigo-500 after:to-pink-500 after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-200"
               >
                 <FileText className="h-4 w-4" />
-                Documents ({teamDocuments.length})
+                <TranslatedText text="Documents" />
               </TabsTrigger>
               <TabsTrigger
                 value="invitations"
                 className="gap-2 relative data-[state=active]:text-indigo-600 dark:data-[state=active]:text-indigo-400 transition-all duration-200 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-gradient-to-r after:from-indigo-500 after:to-pink-500 after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-200"
               >
                 <Mail className="h-4 w-4" />
-                Invitations ({pendingInvitations.length})
+                <TranslatedText text="Invitations" />
               </TabsTrigger>
               <TabsTrigger
                 value="analytics"
                 className="gap-2 relative data-[state=active]:text-indigo-600 dark:data-[state=active]:text-indigo-400 transition-all duration-200 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-gradient-to-r after:from-indigo-500 after:to-pink-500 after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-200"
               >
                 <BarChart3 className="h-4 w-4" />
-                Analytics
+                <TranslatedText text="Analytics" />
               </TabsTrigger>
               {isOwner && (
                 <TabsTrigger
@@ -825,7 +852,7 @@ export function TeamDetailClient({ teamId }: { teamId: string }) {
                   className="gap-2 relative data-[state=active]:text-indigo-600 dark:data-[state=active]:text-indigo-400 transition-all duration-200 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-gradient-to-r after:from-indigo-500 after:to-pink-500 after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-200"
                 >
                   <Settings className="h-4 w-4" />
-                  Settings
+                  <TranslatedText text="Settings" />
                 </TabsTrigger>
               )}
             </TabsList>
@@ -883,14 +910,14 @@ export function TeamDetailClient({ teamId }: { teamId: string }) {
             <TabsContent value="documents" className="space-y-4">
               <div className="flex items-center justify-between mb-4">
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Documents shared with this team
+                  <TranslatedText text="Documents shared with this team" />
                 </p>
                 <Button
                   onClick={() => setShowShareDialog(true)}
                   className="bg-gradient-to-r from-teal-500 to-blue-500 hover:from-teal-600 hover:to-blue-600"
                 >
                   <FileText className="mr-2 h-4 w-4" />
-                  Share Document
+                  <TranslatedText text="Share Document" />
                 </Button>
               </div>
 
@@ -905,110 +932,21 @@ export function TeamDetailClient({ teamId }: { teamId: string }) {
                   variants={containerVariants}
                   initial="hidden"
                   animate="visible"
-                  className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                  className="grid grid-cols-1 md:grid-cols-3 gap-4"
                 >
                   {teamDocuments.length > 0 ? (
                     teamDocuments.map((teamDoc) => (
-                      <motion.div
+                      <DocumentCard
                         key={teamDoc.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                      >
-                        <Card className="group hover:shadow-lg transition-all duration-300 dark:bg-gray-800/50 backdrop-blur border hover:border-teal-500/30">
-                          <CardContent className="p-5">
-                            <div className="flex items-start justify-between mb-3">
-                              <div className="flex-1 min-w-0">
-                                <h4 className="font-semibold text-lg mb-1 truncate bg-gradient-to-r from-teal-500 to-blue-500 bg-clip-text text-transparent">
-                                  {teamDoc.documentName}
-                                </h4>
-                                <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
-                                  <Badge variant="outline" className="text-xs">
-                                    {teamDoc.documentType}
-                                  </Badge>
-                                  <span>•</span>
-                                  <span>{(teamDoc.fileSize / 1024 / 1024).toFixed(2)} MB</span>
-                                  <span>•</span>
-                                  <span>{format(new Date(teamDoc.sharedAt), 'MMM dd, yyyy')}</span>
-                                </div>
-                                <Badge
-                                  variant="outline"
-                                  className={cn(
-                                    'gap-1 text-xs',
-                                    teamDoc.permission === 'ADMIN' && 'border-purple-500/30 text-purple-500',
-                                    teamDoc.permission === 'EDIT' && 'border-blue-500/30 text-blue-500',
-                                    teamDoc.permission === 'COMMENT' && 'border-green-500/30 text-green-500',
-                                    teamDoc.permission === 'VIEW' && 'border-gray-500/30 text-gray-500'
-                                  )}
-                                >
-                                  {teamDoc.permission}
-                                </Badge>
-                              </div>
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <MoreVertical className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onClick={() => router.push(`/analysis/${teamDoc.documentId}`)}>
-                                    <Eye className="h-4 w-4 mr-2" />
-                                    View Analysis
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => router.push(`/chat/${teamDoc.documentId}`)}>
-                                    <Mail className="h-4 w-4 mr-2" />
-                                    Chat with AI
-                                  </DropdownMenuItem>
-                                  <DropdownMenuSeparator />
-                                  {(canManageMembers || teamDoc.sharedById === session?.user?.email) && (
-                                    <DropdownMenuItem
-                                      onClick={() => handleRemoveDocument(teamDoc.id)}
-                                      className="text-red-500"
-                                    >
-                                      <Trash2 className="h-4 w-4 mr-2" />
-                                      Remove from Team
-                                    </DropdownMenuItem>
-                                  )}
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </div>
-
-                            <div className="flex items-center gap-4 text-xs text-gray-500 mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                              <div className="flex items-center gap-1">
-                                <Users className="h-3 w-3" />
-                                {teamDoc._count.comments} comments
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <Activity className="h-3 w-3" />
-                                {teamDoc._count.activity} activities
-                              </div>
-                              {teamDoc.lastAccessedAt && (
-                                <div className="flex items-center gap-1">
-                                  <Clock className="h-3 w-3" />
-                                  {formatDistanceToNow(new Date(teamDoc.lastAccessedAt), { addSuffix: true })}
-                                </div>
-                              )}
-                            </div>
-
-                            <div className="flex gap-2 mt-4">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="flex-1"
-                                onClick={() => router.push(`/analysis/${teamDoc.documentId}`)}
-                              >
-                                View Analysis
-                              </Button>
-                              <Button
-                                size="sm"
-                                className="flex-1 bg-gradient-to-r from-teal-500 to-blue-500"
-                                onClick={() => router.push(`/chat/${teamDoc.documentId}`)}
-                              >
-                                Chat with AI
-                              </Button>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      </motion.div>
+                        teamDoc={teamDoc}
+                        canManage={canManageMembers}
+                        isOwner={isOwner}
+                        session={session}
+                        teamId={teamId}
+                        onRemove={handleRemoveDocument}
+                        onUpdate={fetchTeamDocuments}
+                        team={team}
+                      />
                     ))
                   ) : (
                     <div className="col-span-full">
@@ -1085,15 +1023,15 @@ export function TeamDetailClient({ teamId }: { teamId: string }) {
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle className="text-2xl bg-gradient-to-r from-teal-500 to-purple-500 bg-clip-text text-transparent">
-              Invite Team Members
+              <TranslatedText text="Invite Team Members" />
             </DialogTitle>
             <DialogDescription>
-              Send an invitation to join your team
+              <TranslatedText text="Send an invitation to join your team" />
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="invite-email">Email Address *</Label>
+              <Label htmlFor="invite-email"><TranslatedText text="Email Address" /> *</Label>
               <Input
                 id="invite-email"
                 type="email"
@@ -1103,7 +1041,7 @@ export function TeamDetailClient({ teamId }: { teamId: string }) {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="invite-role">Role *</Label>
+              <Label htmlFor="invite-role"><TranslatedText text="Role" /> *</Label>
               <Select
                 value={inviteForm.role}
                 onValueChange={(value) => setInviteForm({ ...inviteForm, role: value })}
@@ -1136,7 +1074,7 @@ export function TeamDetailClient({ teamId }: { teamId: string }) {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="invite-message">Personal Message (Optional)</Label>
+              <Label htmlFor="invite-message"><TranslatedText text="Personal Message (Optional)" /></Label>
               <Textarea
                 id="invite-message"
                 placeholder="Add a personal message to your invitation..."
@@ -1148,7 +1086,7 @@ export function TeamDetailClient({ teamId }: { teamId: string }) {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowInviteDialog(false)}>
-              Cancel
+              <TranslatedText text="Cancel" />
             </Button>
             <Button
               onClick={handleInviteMember}
@@ -1158,12 +1096,12 @@ export function TeamDetailClient({ teamId }: { teamId: string }) {
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Sending...
+                  <TranslatedText text="Sending..." />
                 </>
               ) : (
                 <>
                   <Send className="mr-2 h-4 w-4" />
-                  Send Invitation
+                  <TranslatedText text="Send Invitation" />
                 </>
               )}
             </Button>
@@ -1176,15 +1114,15 @@ export function TeamDetailClient({ teamId }: { teamId: string }) {
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle className="text-2xl bg-gradient-to-r from-teal-500 to-purple-500 bg-clip-text text-transparent">
-              Share Document with Team
+              <TranslatedText text="Share Document with Team" />
             </DialogTitle>
             <DialogDescription>
-              Choose a document from your library to share with this team
+              <TranslatedText text="Choose a document from your library to share with this team" />
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="document-select">Select Document *</Label>
+              <Label htmlFor="document-select"><TranslatedText text="Select Document" /> *</Label>
               <Select value={selectedDocToShare} onValueChange={setSelectedDocToShare}>
                 <SelectTrigger id="document-select">
                   <SelectValue placeholder="Choose a document..." />
@@ -1209,7 +1147,7 @@ export function TeamDetailClient({ teamId }: { teamId: string }) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="permission-select">Permission Level *</Label>
+              <Label htmlFor="permission-select"><TranslatedText text="Permission Level" /> *</Label>
               <Select value={sharePermission} onValueChange={setSharePermission}>
                 <SelectTrigger id="permission-select">
                   <SelectValue />
@@ -1219,8 +1157,8 @@ export function TeamDetailClient({ teamId }: { teamId: string }) {
                     <div className="flex items-center gap-2">
                       <Eye className="h-4 w-4 text-gray-500" />
                       <div>
-                        <div className="font-medium">View Only</div>
-                        <div className="text-xs text-gray-500">Can only view the document</div>
+                        <div className="font-medium"><TranslatedText text="View Only" /></div>
+                        <div className="text-xs text-gray-500"><TranslatedText text="Can only view the document" /></div>
                       </div>
                     </div>
                   </SelectItem>
@@ -1228,8 +1166,8 @@ export function TeamDetailClient({ teamId }: { teamId: string }) {
                     <div className="flex items-center gap-2">
                       <Mail className="h-4 w-4 text-green-500" />
                       <div>
-                        <div className="font-medium">Comment</div>
-                        <div className="text-xs text-gray-500">Can view and add comments</div>
+                        <div className="font-medium"><TranslatedText text="Comment" /></div>
+                        <div className="text-xs text-gray-500"><TranslatedText text="Can view and add comments" /></div>
                       </div>
                     </div>
                   </SelectItem>
@@ -1237,8 +1175,8 @@ export function TeamDetailClient({ teamId }: { teamId: string }) {
                     <div className="flex items-center gap-2">
                       <Edit2 className="h-4 w-4 text-blue-500" />
                       <div>
-                        <div className="font-medium">Edit</div>
-                        <div className="text-xs text-gray-500">Can view, comment, and edit analysis</div>
+                        <div className="font-medium"><TranslatedText text="Edit" /></div>
+                        <div className="text-xs text-gray-500"><TranslatedText text="Can view, comment, and edit analysis" /></div>
                       </div>
                     </div>
                   </SelectItem>
@@ -1247,8 +1185,8 @@ export function TeamDetailClient({ teamId }: { teamId: string }) {
                       <div className="flex items-center gap-2">
                         <Shield className="h-4 w-4 text-purple-500" />
                         <div>
-                          <div className="font-medium">Admin</div>
-                          <div className="text-xs text-gray-500">Full control including deletion</div>
+                          <div className="font-medium"><TranslatedText text="Admin" /></div>
+                          <div className="text-xs text-gray-500"><TranslatedText text="Full control including deletion" /></div>
                         </div>
                       </div>
                     </SelectItem>
@@ -1259,7 +1197,7 @@ export function TeamDetailClient({ teamId }: { teamId: string }) {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowShareDialog(false)}>
-              Cancel
+              <TranslatedText text="Cancel" />
             </Button>
             <Button
               onClick={handleShareDocument}
@@ -1269,12 +1207,12 @@ export function TeamDetailClient({ teamId }: { teamId: string }) {
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Sharing...
+                  <TranslatedText text="Sharing..." />
                 </>
               ) : (
                 <>
                   <FileText className="mr-2 h-4 w-4" />
-                  Share Document
+                  <TranslatedText text="Share Document" />
                 </>
               )}
             </Button>
@@ -1286,14 +1224,14 @@ export function TeamDetailClient({ teamId }: { teamId: string }) {
       <Dialog open={!!memberToChangeRole} onOpenChange={(open) => !open && setMemberToChangeRole(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Change Member Role</DialogTitle>
+            <DialogTitle><TranslatedText text="Change Member Role" /></DialogTitle>
             <DialogDescription>
-              Update the role for {memberToChangeRole?.user.firstName} {memberToChangeRole?.user.lastName}
+              <TranslatedText text="Update the role for" /> {memberToChangeRole?.user.firstName} {memberToChangeRole?.user.lastName}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="new-role">New Role</Label>
+              <Label htmlFor="new-role"><TranslatedText text="New Role" /></Label>
               <Select value={newRole} onValueChange={setNewRole}>
                 <SelectTrigger id="new-role" className="w-full">
                   <SelectValue />
@@ -1329,16 +1267,16 @@ export function TeamDetailClient({ teamId }: { teamId: string }) {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setMemberToChangeRole(null)}>
-              Cancel
+              <TranslatedText text="Cancel" />
             </Button>
             <Button onClick={handleChangeRole} disabled={isSubmitting || newRole === memberToChangeRole?.role}>
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Updating...
+                  <TranslatedText text="Updating..." />
                 </>
               ) : (
-                'Update Role'
+                <TranslatedText text="Update Role" />
               )}
             </Button>
           </DialogFooter>
@@ -1349,14 +1287,14 @@ export function TeamDetailClient({ teamId }: { teamId: string }) {
       <AlertDialog open={!!memberToRemove} onOpenChange={(open) => !open && setMemberToRemove(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remove Team Member</AlertDialogTitle>
+            <AlertDialogTitle><TranslatedText text="Remove Team Member" /></AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to remove {memberToRemove?.user.firstName} {memberToRemove?.user.lastName} from this team?
-              This action cannot be undone.
+              <TranslatedText text="Are you sure you want to remove" /> {memberToRemove?.user.firstName} {memberToRemove?.user.lastName} <TranslatedText text="from this team?" />
+              <TranslatedText text="This action cannot be undone." />
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel><TranslatedText text="Cancel" /></AlertDialogCancel>
             <AlertDialogAction
               onClick={handleRemoveMember}
               disabled={isSubmitting}
@@ -1365,10 +1303,10 @@ export function TeamDetailClient({ teamId }: { teamId: string }) {
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Removing...
+                  <TranslatedText text="Removing..." />
                 </>
               ) : (
-                'Remove Member'
+                <TranslatedText text="Remove Member" />
               )}
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -1379,13 +1317,13 @@ export function TeamDetailClient({ teamId }: { teamId: string }) {
       <AlertDialog open={!!invitationToCancel} onOpenChange={(open) => !open && setInvitationToCancel(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Cancel Invitation</AlertDialogTitle>
+            <AlertDialogTitle><TranslatedText text="Cancel Invitation" /></AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to cancel the invitation sent to {invitationToCancel?.email}?
+              <TranslatedText text="Are you sure you want to cancel the invitation sent to" /> {invitationToCancel?.email}?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>No, Keep It</AlertDialogCancel>
+            <AlertDialogCancel><TranslatedText text="No, Keep It" /></AlertDialogCancel>
             <AlertDialogAction
               onClick={handleCancelInvitation}
               disabled={isSubmitting}
@@ -1394,10 +1332,10 @@ export function TeamDetailClient({ teamId }: { teamId: string }) {
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Cancelling...
+                  <TranslatedText text="Cancelling..." />
                 </>
               ) : (
-                'Yes, Cancel'
+                <TranslatedText text="Yes, Cancel" />
               )}
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -1408,19 +1346,19 @@ export function TeamDetailClient({ teamId }: { teamId: string }) {
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-red-600">Delete Team Permanently</AlertDialogTitle>
+            <AlertDialogTitle className="text-red-600"><TranslatedText text="Delete Team Permanently" /></AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete <strong>{team.name}</strong>? This will permanently delete:
+              <TranslatedText text="Are you sure you want to delete" /> <strong>{team.name}</strong>? <TranslatedText text="This will permanently delete:" />
               <ul className="list-disc list-inside mt-2 space-y-1">
-                <li>All team members ({team.members.length} members)</li>
-                <li>All pending invitations ({pendingInvitations.length} invitations)</li>
-                <li>All team analytics and data</li>
+                <li><TranslatedText text="All team members" /> ({team.members.length} <TranslatedText text="members" />)</li>
+                <li><TranslatedText text="All pending invitations" /> ({pendingInvitations.length} <TranslatedText text="invitations" />)</li>
+                <li><TranslatedText text="All team analytics and data" /></li>
               </ul>
-              <p className="mt-3 font-semibold text-red-600">This action cannot be undone!</p>
+              <p className="mt-3 font-semibold text-red-600"><TranslatedText text="This action cannot be undone!" /></p>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isSubmitting}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isSubmitting}><TranslatedText text="Cancel" /></AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteTeam}
               disabled={isSubmitting}
@@ -1429,12 +1367,12 @@ export function TeamDetailClient({ teamId }: { teamId: string }) {
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Deleting...
+                  <TranslatedText text="Deleting..." />
                 </>
               ) : (
                 <>
                   <Trash2 className="mr-2 h-4 w-4" />
-                  Delete Team Permanently
+                  <TranslatedText text="Delete Team Permanently" />
                 </>
               )}
             </AlertDialogAction>
@@ -1515,7 +1453,7 @@ const StatsCard = ({ icon, label, value, color, subtitle, variants, showEmptySta
               <AnimatedCounter value={value} />
             </p>
             <p className="text-xs text-gray-500 dark:text-gray-500 italic">
-              "No documents reviewed yet!"
+              "<TranslatedText text="No documents reviewed yet!" />"
             </p>
           </CardContent>
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-teal-500 to-blue-500 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300" />
@@ -1636,14 +1574,14 @@ const MemberCard = ({ member, canManage, isOwner, currentUserRole, onChangeRole,
                     <>
                       <DropdownMenuItem onClick={onChangeRole}>
                         <Edit2 className="h-4 w-4 mr-2" />
-                        Change Role
+                        <TranslatedText text="Change Role" />
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                     </>
                   )}
                   <DropdownMenuItem onClick={onRemove} variant="destructive">
                     <Trash2 className="h-4 w-4 mr-2" />
-                    Remove Member
+                    <TranslatedText text="Remove Member" />
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -1696,7 +1634,7 @@ const InvitationCard = ({ invitation, canManage, onResend, onCancel, getRoleIcon
                   className="gap-1"
                 >
                   <RefreshCw className="h-3 w-3" />
-                  Resend
+                  <TranslatedText text="Resend" />
                 </Button>
                 <Button
                   variant="outline"
@@ -1705,7 +1643,7 @@ const InvitationCard = ({ invitation, canManage, onResend, onCancel, getRoleIcon
                   className="gap-1 text-red-500 hover:text-red-600"
                 >
                   <XCircle className="h-3 w-3" />
-                  Cancel
+                  <TranslatedText text="Cancel" />
                 </Button>
               </div>
             )}
@@ -1740,16 +1678,16 @@ const AnalyticsTab = ({ team }: { team: TeamData }) => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-teal-500" />
-            Team Activity Over Time
+            <TranslatedText text="Team Activity Over Time" />
           </CardTitle>
-          <CardDescription>Document reviews and member activity for the past week</CardDescription>
+          <CardDescription><TranslatedText text="Document reviews and member activity for the past week" /></CardDescription>
         </CardHeader>
         <CardContent>
           <div className="h-64 flex items-center justify-center text-gray-500">
             <div className="text-center">
               <BarChart3 className="h-12 w-12 mx-auto mb-3 text-gray-400" />
-              <p>Activity chart would be displayed here</p>
-              <p className="text-sm mt-2">Integration with charting library like Recharts</p>
+              <p><TranslatedText text="Activity chart would be displayed here" /></p>
+              <p className="text-sm mt-2"><TranslatedText text="Integration with charting library like Recharts" /></p>
             </div>
           </div>
         </CardContent>
@@ -1758,7 +1696,7 @@ const AnalyticsTab = ({ team }: { team: TeamData }) => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card className="dark:bg-gray-800/50 backdrop-blur">
           <CardHeader>
-            <CardTitle className="text-lg">Top Contributors</CardTitle>
+            <CardTitle className="text-lg"><TranslatedText text="Top Contributors" /></CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
@@ -1790,7 +1728,7 @@ const AnalyticsTab = ({ team }: { team: TeamData }) => {
 
         <Card className="dark:bg-gray-800/50 backdrop-blur">
           <CardHeader>
-            <CardTitle className="text-lg">Role Distribution</CardTitle>
+            <CardTitle className="text-lg"><TranslatedText text="Role Distribution" /></CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
@@ -1830,10 +1768,23 @@ const AnalyticsTab = ({ team }: { team: TeamData }) => {
 
 const SettingsTab = ({ team, onUpdate, onDelete }: { team: TeamData; onUpdate: () => void; onDelete: () => void }) => {
   const [settings, setSettings] = useState({
+    name: team.name,
+    description: team.description || '',
     maxMembers: team.maxMembers,
+    color: team.color,
     allowInvites: true,
   });
   const [isUpdating, setIsUpdating] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
+
+  useEffect(() => {
+    const changed = 
+      settings.name !== team.name ||
+      settings.description !== (team.description || '') ||
+      settings.maxMembers !== team.maxMembers ||
+      settings.color !== team.color;
+    setHasChanges(changed);
+  }, [settings, team]);
 
   const handleUpdateSettings = async () => {
     setIsUpdating(true);
@@ -1847,6 +1798,7 @@ const SettingsTab = ({ team, onUpdate, onDelete }: { team: TeamData; onUpdate: (
       if (response.ok) {
         toast.success('Settings updated successfully!');
         onUpdate();
+        setHasChanges(false);
       } else {
         const error = await response.json();
         toast.error(error.error || 'Failed to update settings');
@@ -1865,14 +1817,56 @@ const SettingsTab = ({ team, onUpdate, onDelete }: { team: TeamData; onUpdate: (
       animate={{ opacity: 1 }}
       className="space-y-6"
     >
-      <Card className="dark:bg-gray-800/50 backdrop-blur">
+      {/* General Settings */}
+      <Card className="dark:bg-gradient-to-br dark:from-gray-800/80 dark:to-gray-900/80 backdrop-blur-xl border-2">
         <CardHeader>
-          <CardTitle>Team Settings</CardTitle>
-          <CardDescription>Manage your team configuration and preferences</CardDescription>
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-gradient-to-br from-teal-500 to-blue-500">
+              <Settings className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <CardTitle className="text-2xl"><TranslatedText text="General Settings" /></CardTitle>
+              <CardDescription><TranslatedText text="Manage your team configuration and preferences" /></CardDescription>
+            </div>
+          </div>
         </CardHeader>
         <CardContent className="space-y-6">
+          {/* Team Name */}
           <div className="space-y-2">
-            <Label htmlFor="max-members">Maximum Members</Label>
+            <Label htmlFor="team-name" className="text-base font-semibold flex items-center gap-2">
+              <Users className="h-4 w-4 text-teal-500" />
+              <TranslatedText text="Team Name" />
+            </Label>
+            <Input
+              id="team-name"
+              value={settings.name}
+              onChange={(e) => setSettings({ ...settings, name: e.target.value })}
+              className="text-lg font-medium"
+              placeholder="Enter team name..."
+            />
+          </div>
+
+          {/* Team Description */}
+          <div className="space-y-2">
+            <Label htmlFor="team-description" className="text-base font-semibold flex items-center gap-2">
+              <FileText className="h-4 w-4 text-blue-500" />
+              <TranslatedText text="Team Description" />
+            </Label>
+            <Textarea
+              id="team-description"
+              value={settings.description}
+              onChange={(e) => setSettings({ ...settings, description: e.target.value })}
+              rows={3}
+              placeholder="Describe your team's purpose..."
+            />
+          </div>
+
+          {/* Maximum Members */}
+          <div className="space-y-2">
+            <Label htmlFor="max-members" className="text-base font-semibold flex items-center gap-2">
+              <Users className="h-4 w-4 text-purple-500" />
+              <TranslatedText text="Maximum Members" />
+            </Label>
             <Input
               id="max-members"
               type="number"
@@ -1881,55 +1875,174 @@ const SettingsTab = ({ team, onUpdate, onDelete }: { team: TeamData; onUpdate: (
               value={settings.maxMembers}
               onChange={(e) => setSettings({ ...settings, maxMembers: parseInt(e.target.value) || 50 })}
             />
-            <p className="text-xs text-gray-500">
-              Current members: {team.members.length}
-            </p>
-          </div>
-
-          <div className="flex items-center justify-between p-4 rounded-lg bg-gray-50 dark:bg-gray-900/50">
-            <div>
-              <p className="font-medium">Team Color</p>
-              <p className="text-sm text-gray-500">Customize your team's accent color</p>
+            <div className="flex items-center gap-2 text-sm">
+              <div className="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-teal-500 to-blue-500 transition-all duration-300"
+                  style={{ width: `${(team.members.length / settings.maxMembers) * 100}%` }}
+                />
+              </div>
+              <span className="text-gray-600 dark:text-gray-400 font-medium whitespace-nowrap">
+                {team.members.length} / {settings.maxMembers}
+              </span>
             </div>
-            <div
-              className="w-12 h-12 rounded-lg border-2 border-gray-300 dark:border-gray-600"
-              style={{ backgroundColor: team.color }}
-            />
           </div>
 
+          {/* Team Color */}
+          <div className="space-y-2">
+            <Label htmlFor="team-color" className="text-base font-semibold flex items-center gap-2">
+              <div className="w-4 h-4 rounded-full" style={{ backgroundColor: settings.color }} />
+              <TranslatedText text="Team Color" />
+            </Label>
+            <div className="flex gap-3">
+              <Input
+                id="team-color"
+                type="color"
+                value={settings.color}
+                onChange={(e) => setSettings({ ...settings, color: e.target.value })}
+                className="w-24 h-12 cursor-pointer"
+              />
+              <Input
+                type="text"
+                value={settings.color}
+                onChange={(e) => setSettings({ ...settings, color: e.target.value })}
+                placeholder="#0ea5e9"
+                className="flex-1"
+              />
+              <div className="flex gap-2">
+                {['#0ea5e9', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#ef4444'].map((color) => (
+                  <button
+                    key={color}
+                    onClick={() => setSettings({ ...settings, color })}
+                    className="w-10 h-10 rounded-lg border-2 hover:scale-110 transition-transform"
+                    style={{
+                      backgroundColor: color,
+                      borderColor: settings.color === color ? color : 'transparent',
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Team Preview */}
+          <div className="p-4 rounded-xl bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 border-2 border-dashed border-gray-300 dark:border-gray-700">
+            <p className="text-xs text-gray-500 mb-3 font-semibold uppercase tracking-wide"><TranslatedText text="Preview" /></p>
+            <div className="flex items-center gap-3">
+              <div 
+                className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg"
+                style={{ backgroundColor: settings.color }}
+              >
+                {settings.name[0]?.toUpperCase() || 'T'}
+              </div>
+              <div>
+                <h4 className="font-bold text-lg">{settings.name || 'Team Name'}</h4>
+                <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-1">
+                  {settings.description || 'No description'}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Save Button */}
           <Button
             onClick={handleUpdateSettings}
-            disabled={isUpdating}
-            className="w-full"
+            disabled={isUpdating || !hasChanges}
+            className="w-full h-12 text-base font-semibold bg-gradient-to-r from-teal-500 to-blue-500 hover:from-teal-600 hover:to-blue-600 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transition-all duration-300"
           >
             {isUpdating ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Updating...
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                <TranslatedText text="Updating..." />
+              </>
+            ) : hasChanges ? (
+              <>
+                <CheckCircle className="mr-2 h-5 w-5" />
+                <TranslatedText text="Save Changes" />
               </>
             ) : (
               <>
-                <CheckCircle className="mr-2 h-4 w-4" />
-                Save Changes
+                <CheckCircle className="mr-2 h-5 w-5" />
+                <TranslatedText text="All Changes Saved" />
               </>
             )}
           </Button>
         </CardContent>
       </Card>
 
-      <Card className="dark:bg-gray-800/50 backdrop-blur border-red-200 dark:border-red-900">
+      {/* Team Statistics */}
+      <Card className="dark:bg-gradient-to-br dark:from-gray-800/80 dark:to-gray-900/80 backdrop-blur-xl border-2">
         <CardHeader>
-          <CardTitle className="text-red-500">Danger Zone</CardTitle>
-          <CardDescription>Irreversible actions that affect your team</CardDescription>
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500">
+              <BarChart3 className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <CardTitle className="text-2xl"><TranslatedText text="Team Statistics" /></CardTitle>
+              <CardDescription><TranslatedText text="Overview of your team's performance" /></CardDescription>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="p-4 rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-500/5 border border-blue-500/20">
+              <Users className="h-5 w-5 text-blue-600 dark:text-blue-400 mb-2" />
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{team.members.length}</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400"><TranslatedText text="Total Members" /></p>
+            </div>
+            <div className="p-4 rounded-xl bg-gradient-to-br from-green-500/10 to-green-500/5 border border-green-500/20">
+              <Activity className="h-5 w-5 text-green-600 dark:text-green-400 mb-2" />
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                {team.members.filter(m => m.status === 'ACTIVE').length}
+              </p>
+              <p className="text-xs text-gray-600 dark:text-gray-400"><TranslatedText text="Active Members" /></p>
+            </div>
+            <div className="p-4 rounded-xl bg-gradient-to-br from-purple-500/10 to-purple-500/5 border border-purple-500/20">
+              <FileText className="h-5 w-5 text-purple-600 dark:text-purple-400 mb-2" />
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                {team.members.reduce((sum, m) => sum + m.documentsReviewed, 0)}
+              </p>
+              <p className="text-xs text-gray-600 dark:text-gray-400"><TranslatedText text="Documents Reviewed" /></p>
+            </div>
+            <div className="p-4 rounded-xl bg-gradient-to-br from-orange-500/10 to-orange-500/5 border border-orange-500/20">
+              <Calendar className="h-5 w-5 text-orange-600 dark:text-orange-400 mb-2" />
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                {Math.floor((new Date().getTime() - new Date(team.createdAt).getTime()) / (1000 * 60 * 60 * 24))}
+              </p>
+              <p className="text-xs text-gray-600 dark:text-gray-400"><TranslatedText text="Days Active" /></p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Danger Zone */}
+      <Card className="dark:bg-gradient-to-br dark:from-red-900/20 dark:to-red-950/20 backdrop-blur-xl border-2 border-red-500/50">
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-gradient-to-br from-red-500 to-red-600">
+              <AlertCircle className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <CardTitle className="text-2xl text-red-600 dark:text-red-400"><TranslatedText text="Danger Zone" /></CardTitle>
+              <CardDescription><TranslatedText text="Irreversible actions that affect your team" /></CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              <TranslatedText text="Deleting your team will permanently remove all members, invitations, documents, and data. This action cannot be undone." />
+            </AlertDescription>
+          </Alert>
+          
           <Button
             variant="outline"
             onClick={onDelete}
-            className="w-full border-red-500 text-red-500 hover:bg-red-50 dark:hover:bg-red-950"
+            className="w-full h-12 border-2 border-red-500 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 font-semibold transition-all duration-300 hover:scale-105"
           >
-            <Trash2 className="mr-2 h-4 w-4" />
-            Delete Team
+            <Trash2 className="mr-2 h-5 w-5" />
+            <TranslatedText text="Delete Team Permanently" />
           </Button>
         </CardContent>
       </Card>
@@ -1953,6 +2066,402 @@ const EmptyState = ({ icon, title, description }: { icon: React.ReactNode; title
       </motion.div>
       <h3 className="text-xl font-semibold mb-2">{title}</h3>
       <p className="text-gray-600 dark:text-gray-400 max-w-md">{description}</p>
+    </motion.div>
+  );
+};
+
+// Enhanced Document Card with Comments
+const DocumentCard = ({ teamDoc, canManage, isOwner, session, teamId, onRemove, onUpdate, team }: any) => {
+  const router = useRouter();
+  const [showComments, setShowComments] = useState(false);
+  const [comments, setComments] = useState<any[]>([]);
+  const [newComment, setNewComment] = useState('');
+  const [isLoadingComments, setIsLoadingComments] = useState(false);
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+
+  const canComment = ['COMMENT', 'EDIT', 'ADMIN'].includes(teamDoc.permission);
+
+  const fetchComments = async () => {
+    if (!showComments) return;
+    
+    setIsLoadingComments(true);
+    try {
+      const response = await fetch(`/api/teams/${teamId}/documents/${teamDoc.id}/comments`);
+      if (response.ok) {
+        const data = await response.json();
+        setComments(data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch comments:', error);
+    } finally {
+      setIsLoadingComments(false);
+    }
+  };
+
+  useEffect(() => {
+    if (showComments) {
+      fetchComments();
+    }
+  }, [showComments]);
+
+  const handleDeleteComment = async (commentId: string) => {
+    try {
+      const response = await fetch(`/api/teams/${teamId}/documents/${teamDoc.id}/comments?commentId=${commentId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        toast.success('Comment deleted successfully!');
+        // Remove comment from local state
+        setComments(prev => prev.filter(c => c.id !== commentId));
+        // Update the team document stats
+        onUpdate();
+      } else {
+        const error = await response.json();
+        toast.error(error.error || 'Failed to delete comment');
+      }
+    } catch (error) {
+      console.error('Failed to delete comment:', error);
+      toast.error('Failed to delete comment');
+    }
+  };
+
+  const handleAddComment = async () => {
+    if (!newComment.trim()) return;
+
+    setIsSubmittingComment(true);
+    try {
+      const response = await fetch(`/api/teams/${teamId}/documents/${teamDoc.id}/comments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: newComment.trim() }),
+      });
+
+      if (response.ok) {
+        const newCommentData = await response.json();
+        toast.success('Comment added successfully!');
+        // Add comment to local state immediately instead of refreshing
+        setComments(prev => [...prev, newCommentData]);
+        setNewComment('');
+        // No need to call onUpdate() as we're updating local state
+      } else {
+        const error = await response.json();
+        toast.error(error.error || 'Failed to add comment');
+      }
+    } catch (error) {
+      console.error('Failed to add comment:', error);
+      toast.error('Failed to add comment');
+    } finally {
+      setIsSubmittingComment(false);
+    }
+  };
+
+  const getRiskColor = (riskLevel?: string) => {
+    switch (riskLevel) {
+      case 'HIGH':
+        return 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20';
+      case 'MEDIUM':
+        return 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/20';
+      case 'LOW':
+        return 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20';
+      default:
+        return 'bg-gray-500/10 text-gray-600 dark:text-gray-400 border-gray-500/20';
+    }
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="group"
+    >
+      <Card className="relative overflow-hidden hover:shadow-2xl transition-all duration-500 dark:bg-gradient-to-br dark:from-gray-800/80 dark:to-gray-900/80 backdrop-blur-xl border-2 hover:border-teal-500/50">
+        
+        {/* Document Type Badge */}
+        <div className="absolute top-4 right-4 z-10">
+          <Badge variant="outline" className="backdrop-blur-sm bg-white/80 dark:bg-gray-900/80 font-semibold shadow-lg">
+            {teamDoc.documentType || 'DOCUMENT'}
+          </Badge>
+        </div>
+
+        <CardContent className="p-4 relative z-10">
+          {/* Header Section */}
+          <div className="mb-3">
+            <div className="flex items-start gap-3 mb-2">
+              {/* Document Icon */}
+              <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br from-teal-500 to-blue-500 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                <FileText className="h-6 w-6 text-white" />
+              </div>
+              
+              {/* Document Info */}
+              <div className="flex-1 min-w-0">
+                <h4 className="font-bold text-xl mb-1 truncate bg-gradient-to-r from-teal-600 via-blue-600 to-purple-600 dark:from-teal-400 dark:via-blue-400 dark:to-purple-400 bg-clip-text text-transparent group-hover:scale-105 transition-transform duration-300 origin-left">
+                  {teamDoc.documentName}
+                </h4>
+                
+                {/* Metadata Pills */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      'gap-1 text-xs font-medium shadow-sm',
+                      teamDoc.permission === 'ADMIN' && 'border-purple-500/50 text-purple-600 dark:text-purple-400 bg-purple-500/10',
+                      teamDoc.permission === 'EDIT' && 'border-blue-500/50 text-blue-600 dark:text-blue-400 bg-blue-500/10',
+                      teamDoc.permission === 'COMMENT' && 'border-green-500/50 text-green-600 dark:text-green-400 bg-green-500/10',
+                      teamDoc.permission === 'VIEW' && 'border-gray-500/50 text-gray-600 dark:text-gray-400 bg-gray-500/10'
+                    )}
+                  >
+                    {teamDoc.permission === 'ADMIN' && <Shield className="h-3 w-3" />}
+                    {teamDoc.permission === 'EDIT' && <Edit2 className="h-3 w-3" />}
+                    {teamDoc.permission === 'COMMENT' && <Mail className="h-3 w-3" />}
+                    {teamDoc.permission === 'VIEW' && <Eye className="h-3 w-3" />}
+                    {teamDoc.permission}
+                  </Badge>
+                  
+                  {teamDoc.riskLevel && (
+                    <Badge variant="outline" className={cn('gap-1 text-xs font-medium shadow-sm', getRiskColor(teamDoc.riskLevel))}>
+                      <AlertCircle className="h-3 w-3" />
+                      {teamDoc.riskLevel}
+                    </Badge>
+                  )}
+                </div>
+              </div>
+
+              {/* Actions Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-teal-500/10"
+                  >
+                    <MoreVertical className="h-5 w-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuItem onClick={() => router.push(`/analysis/${teamDoc.documentId}`)}>
+                    <Eye className="h-4 w-4 mr-2 text-blue-500" />
+                    <TranslatedText text="View Analysis" />
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => router.push(`/chat/${teamDoc.documentId}`)}>
+                    <Mail className="h-4 w-4 mr-2 text-purple-500" />
+                    <TranslatedText text="Chat with AI" />
+                  </DropdownMenuItem>
+                  {canComment && (
+                    <DropdownMenuItem onClick={() => setShowComments(!showComments)}>
+                      <Mail className="h-4 w-4 mr-2 text-green-500" />
+                      <TranslatedText text={showComments ? "Hide Comments" : "Show Comments"} />
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuSeparator />
+                  {(canManage || teamDoc.sharedById === session?.user?.email) && (
+                    <DropdownMenuItem
+                      onClick={() => onRemove(teamDoc.id)}
+                      className="text-red-500 focus:text-red-600"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      <TranslatedText text="Remove from Team" />
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
+            {/* File Info Bar */}
+            <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-800/50">
+              <div className="flex items-center gap-1">
+                <FileText className="h-3 w-3" />
+                <span className="font-medium">{(teamDoc.fileSize / 1024 / 1024).toFixed(2)} MB</span>
+              </div>
+              <span>•</span>
+              <div className="flex items-center gap-1">
+                <Calendar className="h-3 w-3" />
+                <span>{format(new Date(teamDoc.sharedAt), 'MMM dd, yyyy')}</span>
+              </div>
+              {teamDoc.lastAccessedAt && (
+                <>
+                  <span>•</span>
+                  <div className="flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    <span>{formatDistanceToNow(new Date(teamDoc.lastAccessedAt), { addSuffix: true })}</span>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="grid grid-cols-2 gap-4 mb-3">
+            <Button
+              variant="outline"
+              onClick={() => router.push(`/analysis/${teamDoc.documentId}`)}
+              className="group/btn border-2 hover:border-blue-500/50 hover:bg-blue-500/10 transition-all duration-300 h-12"
+            >
+              <Eye className="h-5 w-5 mr-3 group-hover/btn:text-blue-600" />
+              <TranslatedText text="View Analysis" />
+            </Button>
+            <Button
+              onClick={() => router.push(`/chat/${teamDoc.documentId}`)}
+              className="bg-gradient-to-r from-teal-500 to-blue-500 hover:from-teal-600 hover:to-blue-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 h-12"
+            >
+              <Mail className="h-5 w-5 mr-3" />
+              <TranslatedText text="Chat with AI" />
+            </Button>
+          </div>
+
+          {/* Comments Button */}
+          {canComment && (
+            <div className="mb-3">
+              <Button
+                variant="outline"
+                onClick={() => setShowComments(!showComments)}
+                className="w-full group/btn border-2 hover:border-green-500/50 hover:bg-green-500/10 transition-all duration-300 h-12"
+              >
+                <Mail className="h-5 w-5 mr-3 group-hover/btn:text-green-600" />
+                <TranslatedText text={showComments ? "Hide Comments" : "Comments"} />
+                {comments.length > 0 && (
+                  <Badge variant="secondary" className="ml-3 h-6 w-6 p-0 text-xs bg-green-500 text-white">
+                    {comments.length}
+                  </Badge>
+                )}
+              </Button>
+            </div>
+          )}
+
+          {/* Comments Section */}
+          <AnimatePresence>
+            {showComments && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3 }}
+                className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4"
+              >
+                <h5 className="font-semibold mb-3 flex items-center gap-2">
+                  <Mail className="h-4 w-4 text-teal-500" />
+                  <TranslatedText text="Comments" />
+                  <Badge variant="outline" className="ml-auto">{comments.length}</Badge>
+                </h5>
+
+                {/* Comments List */}
+                <div className="space-y-4 mb-4 max-h-96 overflow-y-auto">
+                  {isLoadingComments ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-8 w-8 animate-spin text-teal-500" />
+                    </div>
+                  ) : comments.length > 0 ? (
+                    comments.map((comment: any) => {
+                      const isCommentAuthor = comment.user?.id === session?.user?.id;
+                      const canDeleteComment = isCommentAuthor || team?.userRole === 'ADMIN' || team?.userRole === 'OWNER';
+                      
+                      return (
+                        <motion.div
+                          key={comment.id}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="group relative flex gap-3 p-4 rounded-xl bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800/60 dark:to-gray-700/60 border border-gray-200 dark:border-gray-600 hover:border-teal-300 dark:hover:border-teal-500 transition-all duration-200"
+                        >
+                          <Avatar className="h-10 w-10 flex-shrink-0 ring-2 ring-teal-500/20">
+                            <AvatarImage src={comment.user?.image} />
+                            <AvatarFallback className="text-sm bg-gradient-to-br from-teal-500 to-blue-500 text-white font-semibold">
+                              {comment.user?.firstName?.[0]}{comment.user?.lastName?.[0]}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="font-semibold text-sm text-gray-900 dark:text-white">
+                                {comment.user?.firstName} {comment.user?.lastName}
+                              </span>
+                              {isCommentAuthor && (
+                                <Badge variant="outline" className="text-xs px-2 py-0.5 bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/30">
+                                  You
+                                </Badge>
+                              )}
+                              <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                {comment.createdAt ? formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true }) : ''}
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
+                              {comment.content}
+                            </p>
+                          </div>
+                          
+                          {/* Delete Button */}
+                          {canDeleteComment && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/10 hover:text-red-500"
+                                >
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-40">
+                                <DropdownMenuItem
+                                  onClick={() => handleDeleteComment(comment.id)}
+                                  className="text-red-500 focus:text-red-600 focus:bg-red-500/10"
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Delete Comment
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
+                        </motion.div>
+                      );
+                    })
+                  ) : (
+                    <div className="text-center py-8">
+                      <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 mb-4">
+                        <Mail className="h-8 w-8 text-gray-400 dark:text-gray-500" />
+                      </div>
+                      <p className="text-gray-500 dark:text-gray-400 font-medium mb-1">No comments yet</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500">Be the first to share your thoughts!</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Add Comment */}
+                {canComment && (
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Add a comment..."
+                      value={newComment}
+                      onChange={(e) => setNewComment(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          handleAddComment();
+                        }
+                      }}
+                      className="flex-1"
+                    />
+                    <Button
+                      onClick={handleAddComment}
+                      disabled={isSubmittingComment || !newComment.trim()}
+                      size="sm"
+                      className="bg-gradient-to-r from-teal-500 to-blue-500 hover:from-teal-600 hover:to-blue-600"
+                    >
+                      {isSubmittingComment ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Send className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </CardContent>
+
+        {/* Bottom Glow Effect */}
+        <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-teal-500 via-blue-500 to-purple-500 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500" />
+      </Card>
     </motion.div>
   );
 };

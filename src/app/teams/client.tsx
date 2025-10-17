@@ -36,6 +36,7 @@ import {
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { TranslatedText } from "@/components/TranslatedText";
 
 interface Team {
   id: string;
@@ -197,10 +198,10 @@ export function TeamsClient() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-3">
-                Team Management
+                <TranslatedText text="Team Management" />
               </h1>
               <p className="text-muted-foreground text-lg mt-2">
-                Collaborate with your team and manage documents together
+                <TranslatedText text="Collaborate with your team and manage documents together" />
               </p>
             </div>
             <Button
@@ -208,7 +209,7 @@ export function TeamsClient() {
               className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
             >
               <Plus className="mr-2 h-4 w-4" />
-              Create Team
+              <TranslatedText text="Create Team" />
             </Button>
           </div>
         </motion.div>
@@ -259,15 +260,15 @@ export function TeamsClient() {
         <DialogContent className="sm:max-w-[500px] bg-gradient-to-br from-white to-blue-50/50 dark:from-gray-900 dark:to-slate-900/50 backdrop-blur-xl border-2">
           <DialogHeader>
             <DialogTitle className="text-3xl bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              Create New Team
+              <TranslatedText text="Create New Team" />
             </DialogTitle>
             <DialogDescription className="text-base">
-              Set up a new team to collaborate with others
+              <TranslatedText text="Set up a new team to collaborate with others" />
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="team-name">Team Name *</Label>
+              <Label htmlFor="team-name"><TranslatedText text="Team Name" /> *</Label>
               <Input
                 id="team-name"
                 placeholder="e.g., Legal Team, Contract Review Squad"
@@ -276,7 +277,7 @@ export function TeamsClient() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="team-description">Description</Label>
+              <Label htmlFor="team-description"><TranslatedText text="Description" /></Label>
               <Textarea
                 id="team-description"
                 placeholder="What is this team for?"
@@ -286,7 +287,7 @@ export function TeamsClient() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="team-color">Team Color</Label>
+              <Label htmlFor="team-color"><TranslatedText text="Team Color" /></Label>
               <div className="flex gap-2">
                 <Input
                   id="team-color"
@@ -305,7 +306,7 @@ export function TeamsClient() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="max-members">Maximum Members</Label>
+              <Label htmlFor="max-members"><TranslatedText text="Maximum Members" /></Label>
               <Input
                 id="max-members"
                 type="number"
@@ -318,14 +319,14 @@ export function TeamsClient() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
-              Cancel
+              <TranslatedText text="Cancel" />
             </Button>
             <Button
               onClick={handleCreateTeam}
               disabled={isCreating || !newTeam.name.trim()}
               className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg"
             >
-              {isCreating ? 'Creating...' : 'Create Team'}
+              {isCreating ? <TranslatedText text="Creating..." /> : <TranslatedText text="Create Team" />}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -356,7 +357,7 @@ const TeamCard = ({ team, variants, onCardClick, getRoleIcon, getRoleBadgeColor 
             <div className="flex-1">
               <CardTitle className="text-2xl mb-2 line-clamp-1 text-card-foreground font-bold">{team.name}</CardTitle>
               <CardDescription className="line-clamp-2 min-h-[40px] text-base">
-                {team.description || 'No description provided'}
+                {team.description || <TranslatedText text="No description provided" />}
               </CardDescription>
             </div>
             {team.userRole && (
@@ -373,28 +374,28 @@ const TeamCard = ({ team, variants, onCardClick, getRoleIcon, getRoleBadgeColor 
             <div className="flex items-center gap-2 p-3 rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-500/5 border border-blue-500/20 shadow-sm hover:shadow-md transition-shadow">
               <Users className="h-5 w-5 text-blue-600 dark:text-blue-400" />
               <div>
-                <p className="text-xs text-muted-foreground font-medium">Members</p>
+                <p className="text-xs text-muted-foreground font-medium"><TranslatedText text="Members" /></p>
                 <p className="text-xl font-bold text-foreground">{team._count.members}</p>
               </div>
             </div>
             <div className="flex items-center gap-2 p-3 rounded-xl bg-gradient-to-br from-green-500/10 to-green-500/5 border border-green-500/20 shadow-sm hover:shadow-md transition-shadow">
               <Activity className="h-5 w-5 text-green-600 dark:text-green-400" />
               <div>
-                <p className="text-xs text-muted-foreground font-medium">Active</p>
+                <p className="text-xs text-muted-foreground font-medium"><TranslatedText text="Active" /></p>
                 <p className="text-xl font-bold text-foreground">{activeMembers}</p>
               </div>
             </div>
             <div className="flex items-center gap-2 p-3 rounded-xl bg-gradient-to-br from-purple-500/10 to-purple-500/5 border border-purple-500/20 shadow-sm hover:shadow-md transition-shadow">
               <FileText className="h-5 w-5 text-purple-600 dark:text-purple-400" />
               <div>
-                <p className="text-xs text-muted-foreground font-medium">Documents</p>
+                <p className="text-xs text-muted-foreground font-medium"><TranslatedText text="Documents" /></p>
                 <p className="text-xl font-bold text-foreground">{totalDocuments}</p>
               </div>
             </div>
             <div className="flex items-center gap-2 p-3 rounded-xl bg-gradient-to-br from-orange-500/10 to-orange-500/5 border border-orange-500/20 shadow-sm hover:shadow-md transition-shadow">
               <Mail className="h-5 w-5 text-orange-600 dark:text-orange-400" />
               <div>
-                <p className="text-xs text-muted-foreground font-medium">Invites</p>
+                <p className="text-xs text-muted-foreground font-medium"><TranslatedText text="Invites" /></p>
                 <p className="text-xl font-bold text-foreground">{team._count.invitations}</p>
               </div>
             </div>
@@ -409,14 +410,14 @@ const TeamCard = ({ team, variants, onCardClick, getRoleIcon, getRoleBadgeColor 
               </AvatarFallback>
             </Avatar>
             <p className="text-xs text-muted-foreground">
-              Owned by <span className="font-semibold text-foreground">{team.owner.firstName} {team.owner.lastName}</span>
+              <TranslatedText text="Owned by" /> <span className="font-semibold text-foreground">{team.owner.firstName} {team.owner.lastName}</span>
             </p>
           </div>
 
           {/* Created Date */}
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Calendar className="h-3 w-3" />
-            Created {team.createdAt ? format(new Date(team.createdAt), 'MMM dd, yyyy') : 'Unknown'}
+            <TranslatedText text="Created" /> {team.createdAt ? format(new Date(team.createdAt), 'MMM dd, yyyy') : 'Unknown'}
           </div>
         </CardContent>
         <div className="absolute inset-0 bg-gradient-to-br from-purple-500/0 via-blue-500/0 to-pink-500/0 group-hover:from-purple-500/5 group-hover:via-blue-500/5 group-hover:to-pink-500/5 pointer-events-none transition-all duration-500" />
@@ -449,10 +450,10 @@ const EmptyState = ({ onCreateClick }: { onCreateClick: () => void }) => {
         </div>
       </motion.div>
       <h2 className="text-4xl font-bold mb-3 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-        No Teams Yet
+        <TranslatedText text="No Teams Yet" />
       </h2>
       <p className="text-muted-foreground mb-8 max-w-md text-lg">
-        Create your first team to start collaborating with others on document reviews and analysis
+        <TranslatedText text="Create your first team to start collaborating with others on document reviews and analysis" />
       </p>
       <Button
         onClick={onCreateClick}
@@ -460,7 +461,7 @@ const EmptyState = ({ onCreateClick }: { onCreateClick: () => void }) => {
         className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105"
       >
         <Plus className="mr-2 h-5 w-5" />
-        Create Your First Team
+        <TranslatedText text="Create Your First Team" />
       </Button>
     </motion.div>
   );

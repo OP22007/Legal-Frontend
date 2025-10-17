@@ -24,6 +24,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
+import { TranslatedText } from "@/components/TranslatedText";
 
 interface Invitation {
   id: string;
@@ -165,7 +166,7 @@ export function AcceptInvitationClient() {
           className="text-center"
         >
           <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading invitation...</p>
+                    <p className="text-muted-foreground"><TranslatedText text="Loading invitation..." /></p>
         </motion.div>
       </div>
     );
@@ -189,14 +190,14 @@ export function AcceptInvitationClient() {
                 <CheckCircle2 className="h-20 w-20 text-green-500 mx-auto mb-6" />
               </motion.div>
               <h2 className="text-3xl font-bold mb-3 text-foreground">
-                Welcome to the Team!
+                <TranslatedText text="Welcome to the Team!" />
               </h2>
               <p className="text-muted-foreground mb-6">
-                You've successfully joined <strong>{invitation?.team.name}</strong>
+                <TranslatedText text="You've successfully joined" /> <strong>{invitation?.team.name}</strong>
               </p>
               <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Redirecting to team page...
+                <TranslatedText text="Redirecting to team page..." />
               </div>
             </CardContent>
           </Card>
@@ -216,16 +217,16 @@ export function AcceptInvitationClient() {
             <CardContent className="pt-8 pb-8">
               <XCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
               <h2 className="text-2xl font-bold mb-3 text-foreground">
-                Invalid Invitation
+                <TranslatedText text="Invalid Invitation" />
               </h2>
               <p className="text-muted-foreground mb-6">
-                {error || 'This invitation link is invalid or has expired.'}
+                {error || <TranslatedText text="This invitation link is invalid or has expired." />}
               </p>
               <Button
                 onClick={() => router.push('/teams')}
                 className="bg-primary text-primary-foreground hover:bg-primary/90"
               >
-                Go to Teams
+                <TranslatedText text="Go to Teams" />
               </Button>
             </CardContent>
           </Card>
@@ -260,10 +261,10 @@ export function AcceptInvitationClient() {
               </div>
             </motion.div>
             <CardTitle className="text-3xl text-foreground">
-              Team Invitation
+              <TranslatedText text="Team Invitation" />
             </CardTitle>
             <CardDescription className="text-base mt-2">
-              You've been invited to join a team on LegisEye
+              <TranslatedText text="You've been invited to join a team on LegisEye" />
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -276,7 +277,7 @@ export function AcceptInvitationClient() {
                 </p>
               )}
               <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">You will join as:</span>
+                <span className="text-sm text-muted-foreground"><TranslatedText text="You will join as:" /></span>
                 <Badge variant="outline" className={`gap-1 ${getRoleBadgeColor(invitation.role)}`}>
                   {getRoleIcon(invitation.role)}
                   {invitation.role}
@@ -294,7 +295,7 @@ export function AcceptInvitationClient() {
                   {invitation.invitedBy.firstName} {invitation.invitedBy.lastName}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  invited you to join
+                  <TranslatedText text="invited you to join" />
                 </p>
               </div>
             </div>
@@ -303,7 +304,7 @@ export function AcceptInvitationClient() {
             {invitation.message && (
               <div className="p-4 rounded-lg bg-purple-500/10 border border-purple-500/20">
                 <p className="text-sm font-semibold mb-2 text-foreground">
-                  Personal Message:
+                  <TranslatedText text="Personal Message:" />
                 </p>
                 <p className="text-muted-foreground italic">
                   "{invitation.message}"
@@ -316,14 +317,14 @@ export function AcceptInvitationClient() {
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  This invitation has expired. Please contact the team owner for a new invitation.
+                  <TranslatedText text="This invitation has expired. Please contact the team owner for a new invitation." />
                 </AlertDescription>
               </Alert>
             ) : (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Calendar className="h-4 w-4" />
                 <span>
-                  Invitation expires on {new Date(invitation.expiresAt).toLocaleDateString()}
+                  <TranslatedText text="Invitation expires on" /> {new Date(invitation.expiresAt).toLocaleDateString()}
                 </span>
               </div>
             )}
@@ -335,7 +336,7 @@ export function AcceptInvitationClient() {
                 variant="outline"
                 className="flex-1"
               >
-                Decline
+                <TranslatedText text="Decline" />
               </Button>
               <Button
                 onClick={handleAccept}
@@ -345,11 +346,11 @@ export function AcceptInvitationClient() {
                 {isAccepting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Joining...
+                    <TranslatedText text="Joining..." />
                   </>
                 ) : (
                   <>
-                    Accept Invitation
+                    <TranslatedText text="Accept Invitation" />
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </>
                 )}
