@@ -4,3 +4,4 @@ temp_files
 .env
 /src/generated/prisma
 .vercel
+ASYNC_UPLOAD_GUIDE.md

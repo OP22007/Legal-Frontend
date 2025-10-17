@@ -1,10 +1,10 @@
 'use client';
 
 import * as React from 'react';
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
     FileText, 
     MessageSquare, 
@@ -734,25 +734,6 @@ const Header = ({ searchQuery, setSearchQuery, sortBy, setSortBy, sortOrder, set
 
 const DocumentCard = ({ doc, variants, onCardClick }: { doc: Document, variants: any, onCardClick: () => void }) => {
   const router = useRouter();
-  const cardRef = useRef<HTMLDivElement>(null);
-
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
-
-  const rotateX = useTransform(y, [-100, 100], [10, -10]);
-  const rotateY = useTransform(x, [-100, 100], [-10, 10]);
-
-  const handleMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (!cardRef.current) return;
-    const rect = cardRef.current.getBoundingClientRect();
-    x.set(event.clientX - rect.left - rect.width / 2);
-    y.set(event.clientY - rect.top - rect.height / 2);
-  };
-
-  const handleMouseLeave = () => {
-    x.set(0);
-    y.set(0);
-  };
   
   // Category-based gradient colors for heading
   const getCategoryFromDocType = (docType: string) => {
@@ -803,13 +784,9 @@ const DocumentCard = ({ doc, variants, onCardClick }: { doc: Document, variants:
   return (
     <motion.div
         variants={variants}
-        className="group perspective-1000"
-        ref={cardRef}
-        onMouseMove={handleMouseMove}
-        onMouseLeave={handleMouseLeave}
+        className="group"
     >
       <motion.div
-        style={{ rotateX, rotateY, scale: 1 }}
         whileHover={{ scale: 1.05 }}
         transition={{ type: 'spring', stiffness: 300, damping: 20 }}
         onClick={onCardClick}

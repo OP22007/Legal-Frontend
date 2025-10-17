@@ -5,6 +5,7 @@ import { motion, useInView, AnimatePresence, useMotionValue, useTransform } from
 import dynamic from 'next/dynamic';
 import confetti from 'canvas-confetti';
 import { useTheme } from "next-themes";
+import { useRouter } from "next/navigation";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,7 +24,8 @@ import {
   Share2,
   Link as LinkIcon,
   Sparkles,
-  RotateCcw
+  RotateCcw,
+  MessageSquare
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Document as PrismaDocument, DocumentAnalysis, RiskFactor, KeyPoint, GlossaryTerm, RiskLevel } from "@/generated/prisma/client";
@@ -558,6 +560,7 @@ const GlossarySection = ({ glossaryTerms }: { glossaryTerms: GlossaryTerm[] }) =
 // --- MAIN CLIENT COMPONENT ---
 export const AnalysisClient = ({ document }: { document: DocumentWithAnalysis }) => {
     const { resolvedTheme } = useTheme();
+    const router = useRouter();
     const [isScrolled, setIsScrolled] = useState(false);
     const t_downloadingPdf = useTranslate('Downloading PDF...');
     const t_sharedSuccessfully = useTranslate('Shared successfully!');
@@ -634,6 +637,7 @@ export const AnalysisClient = ({ document }: { document: DocumentWithAnalysis })
                     </div>
                     <div className="flex items-center gap-2">
                         <Button variant="ghost" onClick={handlePrint}><Printer className="mr-2 h-4 w-4" /> <TranslatedText text='Print'/></Button>
+                        <Button variant="ghost" onClick={() => router.push(`/chat/${document.id}`)}><MessageSquare className="mr-2 h-4 w-4" /> <TranslatedText text='Chat with AI'/></Button>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreVertical /></Button></DropdownMenuTrigger>
                             <DropdownMenuContent align="end">

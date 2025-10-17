@@ -187,7 +187,7 @@ export function TeamsClient() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/30 dark:from-gray-950 dark:via-slate-900 dark:to-indigo-950/30">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/30 dark:from-black/10 dark:via-secondary-foreground/5 dark:to-black/10">
       <div className="container mx-auto p-6 lg:p-8 max-w-7xl">
         {/* Header */}
         <motion.div
@@ -342,7 +342,7 @@ const TeamCard = ({ team, variants, onCardClick, getRoleIcon, getRoleBadgeColor 
   return (
     <motion.div variants={variants} className="group" transition={{ type: 'spring', stiffness: 100 }}>
       <Card
-        className="relative overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-2xl hover:scale-105 border-2 border-transparent hover:border-purple-400/50 bg-gradient-to-br from-white to-slate-50 dark:from-gray-900 dark:to-slate-900 backdrop-blur-sm"
+        className="relative overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-2xl hover:scale-105 border-2 border-transparent hover:border-purple-400/50 bg-gradient-to-br from-white to-slate-50 dark:from-primary-foreground dark:to-secondary-foreground/3 backdrop-blur-md dark:shadow-md dark:shadow-neutral-800 shadow-lg"
         onClick={onCardClick}
       >
         <div

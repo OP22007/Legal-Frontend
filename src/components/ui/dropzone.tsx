@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 
 const STAGES = [
   { key: "uploading", text: "Uploading Securely..." },
+  { key: "processing", text: "Processing Document..." },
   { key: "analyzing", text: "Analyzing Document..." },
   { key: "generating", text: "Generating Detailed Analysis..." },
   { key: "saving", text: "Finalizing Results..." },
@@ -18,6 +19,7 @@ const STAGES = [
 type UploadStatus =
   | "pending"
   | "uploading"
+  | "processing"
   | "analyzing"
   | "generating"
   | "saving"
@@ -28,6 +30,8 @@ interface FileUpload {
   file: File;
   status: UploadStatus;
   error?: string;
+  jobId?: string;
+  progress?: string;
 }
 
 export function Dropzone() {
@@ -85,29 +89,25 @@ export function Dropzone() {
     const toastId = toast.loading("Starting process...");
     const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
     console.log("Using backend URL:", BACKEND_URL);
+    
     try {
       const formData = new FormData();
       formData.append("file", fileToProcess);
 
-      const uploadPromise = fetch(`${BACKEND_URL}/upload`, {
+      // Step 1: Initiate async upload
+      setFileState({ status: "uploading" });
+      toast.loading("Initiating upload...", { id: toastId });
+
+      const initiateResponse = await fetch(`${BACKEND_URL}/upload/initiate`, {
         method: "POST",
         headers: { Authorization: "Bearer RANDOM_TOKEN_VALUE" },
         body: formData,
       });
 
-      setFileState({ status: "uploading" });
-      toast.loading(STAGES[0].text, { id: toastId });
-      await sleep(5000);
-
-      setFileState({ status: "generating" });
-      toast.loading(STAGES[2].text, { id: toastId });
-
-      const fastApiResponse = await uploadPromise;
-
-      if (!fastApiResponse || !fastApiResponse.ok) {
-        let detail = "Analysis server error.";
+      if (!initiateResponse || !initiateResponse.ok) {
+        let detail = "Failed to initiate upload.";
         try {
-          const j = await fastApiResponse?.json();
+          const j = await initiateResponse?.json();
           detail = j?.detail || detail;
         } catch {
           // ignore
@@ -115,7 +115,67 @@ export function Dropzone() {
         throw new Error(detail);
       }
 
-      const analysisResult = await fastApiResponse.json();
+      const { job_id } = await initiateResponse.json();
+      setFileState({ jobId: job_id, status: "processing" });
+      console.log("Job initiated with ID:", job_id);
+
+      // Step 2: Poll for status
+      let analysisResult = null;
+      let pollAttempts = 0;
+      const maxPollAttempts = 100; // 5 minutes max (3s * 100 = 300s)
+
+      while (!analysisResult && pollAttempts < maxPollAttempts) {
+        await sleep(3000); // Poll every 3 seconds
+        pollAttempts++;
+
+        const statusResponse = await fetch(
+          `${BACKEND_URL}/upload/status/${job_id}`,
+          {
+            headers: { Authorization: "Bearer RANDOM_TOKEN_VALUE" },
+          }
+        );
+
+        if (!statusResponse || !statusResponse.ok) {
+          throw new Error("Failed to check upload status.");
+        }
+
+        const statusData = await statusResponse.json();
+        console.log("Status update:", statusData);
+
+        // Update UI based on progress message
+        if (statusData.progress) {
+          setFileState({ progress: statusData.progress });
+          
+          // Map progress to appropriate status
+          if (statusData.progress.includes("Extracting text") || 
+              statusData.progress.includes("Chunking")) {
+            setFileState({ status: "processing" });
+            toast.loading(statusData.progress, { id: toastId });
+          } else if (statusData.progress.includes("Analyzing")) {
+            setFileState({ status: "analyzing" });
+            toast.loading(statusData.progress, { id: toastId });
+          } else if (statusData.progress.includes("Storing") || 
+                     statusData.progress.includes("embeddings")) {
+            setFileState({ status: "generating" });
+            toast.loading(statusData.progress, { id: toastId });
+          }
+        }
+
+        if (statusData.status === "completed") {
+          analysisResult = statusData.result;
+          break;
+        } else if (statusData.status === "failed") {
+          throw new Error(statusData.error || "Upload processing failed.");
+        }
+      }
+
+      if (!analysisResult) {
+        throw new Error("Upload timed out. Please try again.");
+      }
+
+      // Step 3: Save to our database
+      setFileState({ status: "saving" });
+      toast.loading("Saving analysis...", { id: toastId });
 
       const saveResponse = await fetch("/api/documents/create", {
         method: "POST",
@@ -140,9 +200,6 @@ export function Dropzone() {
         }
         throw new Error(err);
       }
-
-      setFileState({ status: "saving" });
-      toast.loading(STAGES[3].text, { id: toastId });
 
       setFileState({ status: "success" });
       toast.success("Analysis complete!", { id: toastId });
@@ -222,7 +279,8 @@ const SecureAnalysisAnimation = ({ status }: { status: UploadStatus }) => {
     "M71.5 50.5H28.5C27.1 50.5 26 51.6 26 53V73C26 74.4 27.1 75.5 28.5 75.5H71.5C72.9 75.5 74 74.4 74 73V53C74 51.6 72.9 50.5 71.5 50.5ZM50 67.5C47.5 67.5 45.5 65.5 45.5 63C45.5 60.5 47.5 58.5 50 58.5C52.5 58.5 54.5 60.5 54.5 63C54.5 65.5 52.5 67.5 50 67.5Z M62.5 50.5V41.5C62.5 34.6 56.9 29 50 29C43.1 29 37.5 34.6 37.5 41.5V50.5";
 
   const isUploading = status === "uploading";
-  const isGenerating = status === "generating";
+  const isProcessing = status === "processing";
+  const isGenerating = status === "generating" || status === "analyzing";
   const isSuccess = status === "success";
 
   const docColors = [
@@ -276,7 +334,7 @@ const SecureAnalysisAnimation = ({ status }: { status: UploadStatus }) => {
 
       {/* UPLOADING: Colorful documents flying in with magnifier */}
       <AnimatePresence>
-        {isUploading && (
+        {(isUploading || isProcessing) && (
           <motion.g key="uploading-docs">
             {/* Documents flying in with paper texture */}
             {documentPaths.map((dPath, i) => (
@@ -497,6 +555,7 @@ function UploadProgress({
   onReset: () => void;
 }) {
   const currentStage = STAGES.find((s) => s.key === file.status);
+  const displayText = file.progress || currentStage?.text || "Processing...";
 
   return (
     <div
@@ -553,14 +612,19 @@ function UploadProgress({
                 </Button>
               </>
             )}
-            {currentStage && (
+            {(file.status !== "success" && file.status !== "error") && (
               <>
                 <h3 className="text-2xl font-semibold text-foreground">
-                  {currentStage.text}
+                  {displayText}
                 </h3>
                 <p className="mt-1 text-muted-foreground truncate max-w-xs mx-auto">
                   {file.file.name}
                 </p>
+                {file.jobId && (
+                  <p className="mt-2 text-xs text-muted-foreground/70">
+                    Job ID: {file.jobId.substring(0, 8)}...
+                  </p>
+                )}
               </>
             )}
           </motion.div>
